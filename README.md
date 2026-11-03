@@ -22,10 +22,13 @@ self-contained `install.sh` (you can also run any of them on its own):
 | `nvim/` | Neovim config (Lua, lazy.nvim) | `~/.config/nvim` |
 | `ghostty/` | `ghostty/config.ghostty` | `~/.config/ghostty/config.ghostty` |
 | `herdr/` | `herdr/config.toml` | `~/.config/herdr/config.toml` |
-| `claude/` | `claude/skills/*`, `claude/commands/*.md` | `~/.claude/skills/*`, `~/.claude/commands/*` |
+| `claude/` | `claude/skills/*`, `claude/commands/*.md` | skills: `~/.claude/skills/*`; commands: `~/.claude/commands/*` **and** `~/.config/opencode/commands/*` |
 
-The claude component is intentionally linked into the Claude config dirs
-only — opencode also reads `~/.claude`, so one source serves both tools.
+The claude component is intentionally linked into the Claude config dirs —
+opencode natively reads `~/.claude/skills` as a global compatibility source,
+so one skills link serves both tools; opencode does **not** read
+`~/.claude/commands`, so commands get an extra link into
+`~/.config/opencode/commands`.
 
 The top-level `./install.sh` runs all of them; one component failing or a
 binary not being installed never blocks the others — missing packages are

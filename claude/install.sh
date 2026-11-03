@@ -2,15 +2,17 @@
 # install.sh — put the NVibe platform-agnostic skill/command set in place on
 # this machine (one of several components; the top-level install.sh runs this).
 #
-# Everything is linked into the Claude config dirs (~/.claude), NOT into
-# ~/.config/opencode — opencode also reads the claude folder, so one source
-# serves both tools. Skills live in ~/.claude/skills/<name>/SKILL.md and
-# commands in ~/.claude/commands/<name>.md.
+#   skills   ~/.claude/skills/<name> — a single link serves both tools:
+#            claude reads it natively and opencode reads it as a global
+#            compatibility source (see opencode docs: skills discovery)
+#   commands ~/.claude/commands/<name>.md (claude) AND
+#            ~/.config/opencode/commands/<name>.md (opencode — it does not
+#            read ~/.claude/commands, so this needs its own link)
 #
 #   1. check claude is on PATH (missing = warning, not a failure)
 #   2. back up any existing real skill/commands (untouched otherwise)
-#   3. symlink each skill dir + each command file into the repo's claude/
-# Only repo paths get linked; anything else in ~/.claude stays local.
+#   3. symlink each skill dir + each command file into the config dirs
+# Only repo paths get linked; anything else in those dirs stays local.
 # Idempotent: safe to re-run.
 
 set -euo pipefail
@@ -38,7 +40,7 @@ if [ ! -d "$SKILLS_SRC" ] || [ ! -d "$COMMANDS_SRC" ]; then
 fi
 
 SKILLS_TARGET_DIR="$HOME/.claude/skills"
-COMMANDS_TARGET_DIR="$HOME/.claude/commands"
+COMMANDS_TARGET_DIRS=("$HOME/.claude/commands" "$HOME/.config/opencode/commands")
 
 TS=$(date +%Y%m%d-%H%M%S)
 
@@ -62,10 +64,12 @@ if [ -n "$(ls -A "$SKILLS_SRC" 2> /dev/null)" ]; then
 fi
 
 if [ -n "$(ls -A "$COMMANDS_SRC" 2> /dev/null)" ]; then
-  mkdir -p "$COMMANDS_TARGET_DIR"
-  for src in "$COMMANDS_SRC"/*.md; do
-    [ -e "$src" ] || continue
-    backup_and_link "$COMMANDS_TARGET_DIR/$(basename "$src")" "$src"
+  for target_dir in "${COMMANDS_TARGET_DIRS[@]}"; do
+    mkdir -p "$target_dir"
+    for src in "$COMMANDS_SRC"/*.md; do
+      [ -e "$src" ] || continue
+      backup_and_link "$target_dir/$(basename "$src")" "$src"
+    done
   done
 fi
 

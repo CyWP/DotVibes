@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install.sh — set up every DotVibes-managed tool on this machine:
-#   nvim, ghostty, herdr, claude — each has its own <component>/install.sh
-#   (self-contained; you can also run any of them directly).
+#   nvim, ghostty, herdr, claude, fonts — each has its own
+#   <component>/install.sh (self-contained; you can also run any of them directly).
 # One component failing or a missing binary never blocks the others;
 # warnings are logged so nothing goes silently missing.
 # Idempotent: safe to re-run.
@@ -17,7 +17,7 @@ while [ -L "$SOURCE" ]; do
 done
 ROOT=$(cd -P "$(dirname "$SOURCE")" && pwd)
 
-COMPONENTS=(nvim ghostty herdr claude)
+COMPONENTS=(nvim ghostty herdr claude fonts)
 
 declare -a problems=()
 for comp in "${COMPONENTS[@]}"; do

@@ -23,6 +23,7 @@ self-contained `install.sh` (you can also run any of them on its own):
 | `ghostty/` | `ghostty/config.ghostty` | `~/.config/ghostty/config.ghostty` |
 | `herdr/` | `herdr/config.toml` | `~/.config/herdr/config.toml` |
 | `claude/` | `claude/skills/*`, `claude/commands/*.md` | skills: `~/.claude/skills/*`; commands: `~/.claude/commands/*` **and** `~/.config/opencode/commands/*` |
+| `fonts/` | `fonts/Monaspace Argon/*.otf` (core 4 styles) | `~/.local/share/fonts/Monaspace Argon/*.otf` |
 
 The claude component is intentionally linked into the Claude config dirs —
 opencode natively reads `~/.claude/skills` as a global compatibility source,

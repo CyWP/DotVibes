@@ -1,4 +1,4 @@
-# NVibe
+# DotVibes
 
 **A complete, portable Neovim configuration** — Lua-first, plugin-manager-managed
 (lazy.nvim), with LSPs (Python: ruff + basedpyright, C/C++: clangd), formatting
@@ -10,8 +10,8 @@ which-key discoverability. See the key reference below for daily usage.
 ## Install
 
 ```sh
-git clone https://github.com/CyWP/NVibe.git  # anywhere you like, e.g. ~/NVibe
-cd NVibe && ./install.sh
+git clone https://github.com/CyWP/DotVibes.git  # anywhere you like, e.g. ~/DotVibes
+cd DotVibes && ./install.sh
 ```
 
 The repo manages four tools, each in its own subfolder with a
@@ -210,7 +210,7 @@ gitsigns shows +/-/~ marks in the gutter next to changed lines.
 Config lives in `nvim/` inside this repo; `~/.config/nvim` is a symlink to it.
 
 ```
-NVibe/nvim/
+DotVibes/nvim/
 ├── init.lua
 ├── lua/
 │   ├── config/
@@ -384,7 +384,7 @@ gitsigns shows +/-/~ marks in the gutter next to changed lines.
 Config lives in `nvim/` inside this repo; `~/.config/nvim` is a symlink to it.
 
 ```
-NVibe/nvim/
+DotVibes/nvim/
 ├── init.lua
 ├── lua/
 │   ├── config/

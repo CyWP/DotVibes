@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — put the NVibe Ghostty config in place on this machine
+# install.sh — put the DotVibes Ghostty config in place on this machine
 # (one of several components; the top-level install.sh runs this for you):
 #   1. check ghostty is on PATH (missing = warning, not a failure)
 #   2. back up an existing ~/.config/ghostty/config.ghostty (untouched otherwise)

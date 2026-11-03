@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — put the NVibe Neovim config in place on this machine
+# install.sh — put the DotVibes Neovim config in place on this machine
 # (one of several components; the top-level install.sh runs this for you):
 #   1. back up any existing ~/.config/nvim (leaves it untouched otherwise)
 #   1. back up any existing ~/.config/nvim (leaves it untouched otherwise)

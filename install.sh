@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — set up every NVibe-managed tool on this machine:
+# install.sh — set up every DotVibes-managed tool on this machine:
 #   nvim, ghostty, herdr, claude — each has its own <component>/install.sh
 #   (self-contained; you can also run any of them directly).
 # One component failing or a missing binary never blocks the others;

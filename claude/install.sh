@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — put the NVibe platform-agnostic skill/command set in place on
+# install.sh — put the DotVibes platform-agnostic skill/command set in place on
 # this machine (one of several components; the top-level install.sh runs this).
 #
 #   skills   ~/.claude/skills/<name> — a single link serves both tools:

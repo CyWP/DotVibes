@@ -14,7 +14,7 @@ git clone https://github.com/CyWP/NVibe.git  # anywhere you like, e.g. ~/NVibe
 cd NVibe && ./install.sh
 ```
 
-The repo manages three tools, each in its own subfolder with a
+The repo manages four tools, each in its own subfolder with a
 self-contained `install.sh` (you can also run any of them on its own):
 
 | Component | Versioned source | Linked as |
@@ -22,6 +22,10 @@ self-contained `install.sh` (you can also run any of them on its own):
 | `nvim/` | Neovim config (Lua, lazy.nvim) | `~/.config/nvim` |
 | `ghostty/` | `ghostty/config.ghostty` | `~/.config/ghostty/config.ghostty` |
 | `herdr/` | `herdr/config.toml` | `~/.config/herdr/config.toml` |
+| `claude/` | `claude/skills/*`, `claude/commands/*.md` | `~/.claude/skills/*`, `~/.claude/commands/*` |
+
+The claude component is intentionally linked into the Claude config dirs
+only — opencode also reads `~/.claude`, so one source serves both tools.
 
 The top-level `./install.sh` runs all of them; one component failing or a
 binary not being installed never blocks the others — missing packages are

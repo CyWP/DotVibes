@@ -10,8 +10,8 @@ which-key discoverability. See the key reference below for daily usage.
 ## Install
 
 ```sh
-git clone <repo-url> ~/Repos/NVibe
-cd ~/Repos/NVibe && ./install.sh
+git clone https://github.com/CyWP/NVibe.git  # anywhere you like, e.g. ~/NVibe
+cd NVibe && ./install.sh
 ```
 
 `install.sh` is idempotent:
@@ -21,8 +21,10 @@ cd ~/Repos/NVibe && ./install.sh
 3. installs every plugin headlessly (first `nvim` launch is ready to use)
 4. runs the tool checklist (`nvim/scripts/bootstrap.sh`, warnings only)
 
-Because the config is a symlink, edits inside `~/Repos/NVibe/nvim` are
-live — and the repo (rather than `~/.config`) is the thing you version.
+Because the config is a symlink, edits inside `<clone>/nvim` are
+live — and the clone (rather than `~/.config`) is the thing you version.
+Any location works: `install.sh` resolves its own path, so the repo can live
+wherever your projects do.
 
 ## What the machine still needs beyond the config
 

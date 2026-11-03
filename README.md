@@ -14,17 +14,31 @@ git clone https://github.com/CyWP/NVibe.git  # anywhere you like, e.g. ~/NVibe
 cd NVibe && ./install.sh
 ```
 
+The repo manages three tools, each in its own subfolder with a
+self-contained `install.sh` (you can also run any of them on its own):
+
+| Component | Versioned source | Linked as |
+|---|---|---|
+| `nvim/` | Neovim config (Lua, lazy.nvim) | `~/.config/nvim` |
+| `ghostty/` | `ghostty/config.ghostty` | `~/.config/ghostty/config.ghostty` |
+| `herdr/` | `herdr/config.toml` | `~/.config/herdr/config.toml` |
+
+The top-level `./install.sh` runs all of them; one component failing or a
+binary not being installed never blocks the others — missing packages are
+logged as warnings. Only the config files of ghostty/herdr are linked;
+their runtime state (logs, sockets, session data) stays local.
 `install.sh` is idempotent:
 
-1. backs up any existing `~/.config/nvim` (never deletes it)
-2. symlinks `~/.config/nvim → <this repo>/nvim`
-3. installs every plugin headlessly (first `nvim` launch is ready to use)
-4. runs the tool checklist (`nvim/scripts/bootstrap.sh`, warnings only)
+1. backs up any existing real config files/dirs (never deletes them)
+2. symlinks each config → the matching subfolder in this repo
+3. (nvim) installs every plugin headlessly (first `nvim` launch is ready to use)
+4. (nvim) runs the tool checklist (`nvim/scripts/bootstrap.sh`, warnings only)
 
-Because the config is a symlink, edits inside `<clone>/nvim` are
-live — and the clone (rather than `~/.config`) is the thing you version.
-Any location works: `install.sh` resolves its own path, so the repo can live
-wherever your projects do.
+Because the configs are symlinks, edits inside the clone are live — and the
+clone (rather than `~/.config`) is the thing you version. Any location works:
+`install.sh` resolves its own path, so the repo can live wherever your
+projects do.
+
 
 ## What the machine still needs beyond the config
 

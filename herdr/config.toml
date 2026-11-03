@@ -1,0 +1,22 @@
+onboarding = false
+
+[theme]
+name = "gruvbox"
+auto_switch = false
+
+[theme.custom]
+panel_bg = "reset"
+sidebar_bg = "reset"
+active_row_bg = "reset"
+selection_bg = "reset"
+surface0 = "reset"
+surface1 = "reset"
+surface_dim = "reset"
+overlay0 = "reset"
+overlay1 = "reset"
+
+[ui]
+status_indicators = "symbols"
+
+[ui.toast]
+delivery = "herdr"

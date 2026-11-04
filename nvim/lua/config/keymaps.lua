@@ -21,6 +21,10 @@ map("n", "<Esc>", "<cmd>nohlsearch<CR>", { desc = "Hide search highlighting" })
 -- <C-o>, and extends/a shrinks the selection in visual mode.
 do
 	local ctrl_o = vim.api.nvim_replace_termcodes("<C-o>", true, false, true)
+	-- `down` is a real boolean bearing in mind two traps when changing these
+	-- v:lua calls: Lua treats ALL numbers (incl. 0) as truthy, and the v:lua
+	-- call ARGS are parsed with vimscript syntax — plain `false` there raised
+	-- E121, so they must be v:false / v:true (which arrive here as Lua bools).
 	function _G.page_quarter(down, insert)
 		local n = math.max(1, math.floor(vim.api.nvim_win_get_height(0) / 4))
 		if insert then
@@ -29,7 +33,7 @@ do
 		return n .. (down and "j" or "k")
 	end
 end
-map({ "n", "v" }, "<PageUp>", "v:lua.page_quarter(0)", { expr = true, desc = "Skip a quarter page up" })
-map({ "n", "v" }, "<PageDown>", "v:lua.page_quarter(1)", { expr = true, desc = "Skip a quarter page down" })
-map("i", "<PageUp>", "v:lua.page_quarter(0, 1)", { expr = true, desc = "Skip a quarter page up" })
-map("i", "<PageDown>", "v:lua.page_quarter(1, 1)", { expr = true, desc = "Skip a quarter page down" })
+map({ "n", "v" }, "<PageUp>", "v:lua.page_quarter(v:false)", { expr = true, desc = "Skip a quarter page up" })
+map({ "n", "v" }, "<PageDown>", "v:lua.page_quarter(v:true)", { expr = true, desc = "Skip a quarter page down" })
+map("i", "<PageUp>", "v:lua.page_quarter(v:false, v:true)", { expr = true, desc = "Skip a quarter page up" })
+map("i", "<PageDown>", "v:lua.page_quarter(v:true, v:true)", { expr = true, desc = "Skip a quarter page down" })

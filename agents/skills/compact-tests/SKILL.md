@@ -36,7 +36,7 @@ Scope: the path/package/test files the user names; otherwise the whole test suit
 
 ## Report
 
-Write the report as a markdown file at `<repo_root>/.claude/compact_tests_REPORT.md` (create the `.claude/` folder at the repo root if missing and make sure `.claude/` is gitignored, adding it to `.gitignore` if not; use `git rev-parse --show-toplevel` for the root, and if the current checkout is a linked worktree, also copy it to the main worktree's root `.claude/`, found via `git worktree list | head -1`). Then give the user a short summary in chat. Contents, concise:
+Write the report as a markdown file at `<repo_root>/.agents/compact_tests_REPORT.md` (create the `.agents/` folder at the repo root if missing and make sure `.agents/` is gitignored, adding it to `.gitignore` if not; use `git rev-parse --show-toplevel` for the root, and if the current checkout is a linked worktree, also copy it to the main worktree's root `.agents/`, found via `git worktree list | head -1`). Then give the user a short summary in chat. Contents, concise:
 
 - Before → after: test count, runtime, line coverage, branch coverage (with deltas).
 - What was removed/merged, grouped by reason (duplicate, subsumed, parametrized, over-specific, trivial), with counts, plus a short list of notable examples.

@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
-# install.sh — put the DotVibes platform-agnostic skill/command set in place on
-# this machine (one of several components; the top-level install.sh runs this).
+# install.sh — put the DotVibes skill set in place on this machine
+# (one of several components; the top-level install.sh runs this for you).
 #
 #   skills   ~/.claude/skills/<name> — a single link serves both tools:
 #            claude reads it natively and opencode reads it as a global
 #            compatibility source (see opencode docs: skills discovery)
-#   commands ~/.claude/commands/<name>.md (claude) AND
-#            ~/.config/opencode/commands/<name>.md (opencode — it does not
-#            read ~/.claude/commands, so this needs its own link)
+#
+# NOTE on commands: the repo no longer carries any command files. learn/rmslop
+# (and similar) are default opencode commands and live inside the tool; if own
+# commands are added again, drop the .md files back into agents/commands/ and
+# they get linked into ~/.claude/commands AND ~/.config/opencode/commands
+# (opencode does not read ~/.claude/commands, so it needs its own link).
 #
 #   1. check claude is on PATH (missing = warning, not a failure)
 #   2. back up any existing real skill/commands (untouched otherwise)
-#   3. symlink each skill dir + each command file into the config dirs
+#   3. symlink each skill dir (and optional command file) into the config dirs
+#   4. prune stale repo links (skills/commands that vanished from the repo)
 # Only repo paths get linked; anything else in those dirs stays local.
 # Idempotent: safe to re-run.
 
@@ -39,10 +43,11 @@ if ! command -v claude > /dev/null; then
     "(claude.ai/code / npm i -g @anthropic-ai/claude-code) needed to use them" >&2
 fi
 
-if [ ! -d "$SKILLS_SRC" ] || [ ! -d "$COMMANDS_SRC" ]; then
-  echo "error: $SKILLS_SRC or $COMMANDS_SRC missing — is the repo intact?" >&2
+if [ ! -d "$SKILLS_SRC" ]; then
+  echo "error: $SKILLS_SRC missing — is the repo intact?" >&2
   exit 1
 fi
+# commands are optional (see header note); the empty/missing dir is fine
 
 SKILLS_TARGET_DIR="$HOME/.claude/skills"
 COMMANDS_TARGET_DIRS=("$HOME/.claude/commands" "$HOME/.config/opencode/commands")
@@ -67,6 +72,27 @@ if [ -n "$(ls -A "$SKILLS_SRC" 2> /dev/null)" ]; then
     backup_and_link "$SKILLS_TARGET_DIR/$(basename "$src")" "${src%/}"
   done
 fi
+
+# prune symlinks that point into this repo but whose skill/command no longer
+# exists (e.g. skills merged or renamed — python-fmt etc. fold into `python`)
+prune_stale() { # $1 = target dir, $2 = source dir pattern prefix
+  local dst tgt
+  for dst in "$1"/*; do
+    [ -L "$dst" ] || continue
+    tgt=$(readlink "$dst")
+    case "$tgt" in
+      "$2"/*)
+        if [ ! -e "$tgt" ]; then
+          rm "$dst"
+          echo "-> removed stale link $dst (no longer in the repo)"
+        fi
+        ;;
+    esac
+  done
+}
+for target_dir in "$SKILLS_TARGET_DIR" "${COMMANDS_TARGET_DIRS[@]}"; do
+  prune_stale "$target_dir" "$ROOT"
+done
 
 if [ -n "$(ls -A "$COMMANDS_SRC" 2> /dev/null)" ]; then
   for target_dir in "${COMMANDS_TARGET_DIRS[@]}"; do

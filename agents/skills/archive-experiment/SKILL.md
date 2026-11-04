@@ -8,15 +8,32 @@ argument-hint: [experiment description or name]
 
 Produce a durable, self-contained archive of an experiment. Goal: someone (likely the user in 6 months) can read `REPORT.md`, understand what was tried and found, and recreate it from the archive plus a checkout of the repo at the recorded commit.
 
-Never delete or move originals: **copy** into the archive. Never copy secrets (see below). Do not create worktrees or branches.
+Setting up experiments is **solo-experiment's** job (see its 'Experiment setup (shared contract)'). Archiving only ever **observes** the existing experiment worktree — never create or modify worktrees or branches here.
+
+Never delete or move originals: **copy** into the archive. Never copy secrets (see below).
+
+## Shared contract assumptions (identical in solo-experiment)
+
+- The experiment ran in a linked worktree, sibling of the main checkout
+  (`../<repo-basename>-<experiment_name>`), on branch
+  `experiment/<experiment_name>` (snake_case name used by both skills).
+- Evidence lives at `<worktree>/.agents/<experiment_name>/` (REPORT.md plus
+  small supporting files), also copied into the main repo's `.agents/` —
+  read the REPORT.md FIRST when present; its Assumptions / Changes / Tests
+  sections are authoritative provenance.
+- Checkpoints were committed to that branch (never pushed); uncommitted
+  changes may still sit in the worktree.
+- If none of the above matches (the experiment ran in the main checkout, or
+  the worktree is gone), record that in "Assumptions and gaps" rather than
+  pretending the convention holds.
 
 ## Step 1: Gather evidence (before asking anything)
 
-Reconstruct what happened from all available sources, not just memory:
+Reconstruct what happened from all available sources, not just memory. Work **in the experiment worktree when it exists** (`git worktree list` to find it; fall back to the main checkout only for legacy runs):
 
 - This conversation: commands run, scripts written, parameters tried, results, dead ends, failures, assumptions.
-- The repo: `git rev-parse --show-toplevel`, remote URL (`git remote -v`), current branch, `git rev-parse HEAD`, `git status --short`, `git log` since the experiment began, and `git worktree list` if relevant.
-- Existing notes/reports: `<repo_root>/.claude/*.md`, `AGENTS.md`, `INFO.md`, any `*_REPORT.md`.
+- The repo: `git rev-parse --show-toplevel`, remote URL (`git remote -v`), the repo's current branch, `git rev-parse HEAD`, `git status --short`, `git log` on `experiment/<experiment_name>` including its base sha, and `git worktree list`.
+- Existing notes/reports: `<worktree>/.agents/<experiment_name>/` and `<repo_root>/.agents/*/` — a solo-experiment `REPORT.md` is evidence source #1 (its Assumptions/Changes/Tests sections are the provenance log; cite it instead of re-deriving) and its sibling files count as artifacts to carry over. Also `AGENTS.md`, `INFO.md`, any other `REPORT.md`.
 - Artifacts: untracked and recently modified files (`git ls-files --others --exclude-standard`, `find -newer`), output dirs (e.g. `outputs/`, `results/`, `runs/`, `plots/`, `wandb/`, `logs/`), temp dirs and the scratchpad used during the session.
 - Shell history is not available; rely on the conversation for exact commands.
 
@@ -26,7 +43,7 @@ If the experiment spans several repos or directories, cover all of them.
 
 Ask both together:
 
-1. **Experiment name**: propose 2-3 short snake_case names derived from the work (first is recommended).
+1. **Experiment name**: propose 2-3 short snake_case names derived from the work (first is recommended). **If a solo-experiment report exists for this work, adopt its `<experiment_name>` exactly** — the branch `experiment/<experiment_name>` and the report file name are already keyed to it.
 2. **Destination directory**: propose sensible options (e.g. `~/experiments`, `<repo_root>/../experiments`, a path you saw the user use) and allow custom. The archive goes in `<destination>/<experiment_name>/`. If it exists and is non-empty, ask whether to merge into it or pick another name; never overwrite silently.
 
 Do not ask anything else. Resolve other ambiguity yourself and log it under **Assumptions** in the report.
@@ -70,7 +87,7 @@ High level, readable top to bottom. Sections:
 # <experiment_name>
 
 - **Archived:** <date>   **Experiment period:** <start> → <end, best knowledge>
-- **Repo(s):** <path>, remote <url>, branch <branch>, commit <full sha>, uncommitted changes: yes/no (see repro/patch.diff)
+- **Repo(s):** main checkout <path>, remote <url>; experiment worktree <path> on branch `experiment/<name>`, commit <full sha>, uncommitted changes: yes/no (see repro/patch.diff)
 - **Goal:** <one or two sentences>
 - **Outcome:** <succeeded / partial / negative result / abandoned> — <headline result>
 
@@ -99,7 +116,7 @@ Open questions and what to try next.
 
 ## Step 5: Write repro/REPRODUCE.md
 
-Concrete, ordered steps: clone URL, `git checkout <sha>`, apply `patch.diff` / `commits.patch`, create environment from `repro/environment/`, required env var names and external data/services with versions, where to place configs/scripts, then the exact commands in order with the expected outputs/time/hardware. Note known pitfalls hit during the experiment.
+Concrete, ordered steps: clone URL, `git worktree add ../<repo-basename>-<experiment_name> -b experiment/<experiment_name> <full sha>` (matching the shared contract layout; note that the branch may have been deleted since — then plain `git checkout <sha>` + `git apply commits.patch`), apply `patch.diff` / `commits.patch`, create environment from `repro/environment/`, required env var names and external data/services with versions, where to place configs/scripts, then the exact commands in order with the expected outputs/time/hardware. Note known pitfalls hit during the experiment.
 
 ## Step 6: Verify and finish
 

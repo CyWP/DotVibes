@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Create a git commit that references the active YouTrack ticket(s), authored solely under the user's own git identity with no Claude attribution. Finds the ticket in AGENTS.md, the repo's .claude/ notes, and the branch name; asks the user if none is found. After committing, asks whether to push and to which remote/branch. Use when the user asks to commit, "commit this", or "make a commit".
+description: Create a git commit that references the active YouTrack ticket(s), authored solely under the user's own git identity with no Claude attribution. Finds the ticket in AGENTS.md, the repo's .agents/ notes, and the branch name; asks the user if none is found. After committing, asks whether to push and to which remote/branch. Use when the user asks to commit, "commit this", or "make a commit".
 ---
 
 # Commit
@@ -12,7 +12,7 @@ Create a commit for the current changes. Pushing is never automatic: after commi
 YouTrack IDs look like `PROJ-123` (`[A-Z][A-Z0-9]+-\d+`). Look, in this order, in:
 
 1. `<repo_root>/AGENTS.md`, for a mention of the ticket currently being worked on.
-2. `<repo_root>/.claude/*.md` (notes, reports, plans), for an active/current ticket.
+2. `<repo_root>/.agents/*.md` (notes, reports, plans), for an active/current ticket.
 3. The current branch name (`git branch --show-current`), e.g. `feature/PROJ-123-add-thing`.
 4. The user's message in this conversation.
 
@@ -24,7 +24,7 @@ Rules:
 ## 2. Inspect and stage
 
 - `git status` and `git diff` (staged and unstaged) to understand the change. Look at `git log -5 --oneline` to match the repo's message style.
-- Stage only files relevant to the change; prefer explicit paths over `git add -A`. Don't commit secrets, large generated files, or `.claude/` (it must stay gitignored). If the changes clearly span unrelated concerns, split into separate commits.
+- Stage only files relevant to the change; prefer explicit paths over `git add -A`. Don't commit secrets, large generated files, or `.agents/` (it must stay gitignored). If the changes clearly span unrelated concerns, split into separate commits.
 
 ## 3. Format the message
 

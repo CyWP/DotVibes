@@ -113,7 +113,14 @@ _check_deps_run() {
     fi
     have xsel || bucket soft "xsel not found — tmux clipboard bindings need it; copies stay inside tmux until it's installed"
 
-    # --- fonts --------------------------------------------------------------------
+    # --- appearance ----------------------------------------------------------------
+echo
+echo "== appearance (config: appearance/) =="
+if have gsettings; then correct "gsettings (GNOME)"
+else bucket hard "gsettings not found — the wallpaper can't be set (gnome/session tooling missing)"
+fi
+
+# --- fonts --------------------------------------------------------------------
     echo
     echo "== fonts (config: fonts/) =="
     if have fc-cache; then correct "fontconfig (fc-cache)"

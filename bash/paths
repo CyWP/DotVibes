@@ -5,8 +5,3 @@
 # most scripts + tool binaries (pip entry points, micromamba, nvibe scripts...)
 export PATH="$PATH:$HOME/.local/bin"
 
-# neovim installed from the official release into /opt
-export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
-
-# opencode CLI
-export PATH="$HOME/.opencode/bin:$PATH"

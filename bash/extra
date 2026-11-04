@@ -1,0 +1,10 @@
+# DotVibes shell — misc bash code snippets (sourced as `.extra` in the
+# interactive part of ~/.bashrc, after the interactive check: expect a terminal
+# here — `bind` fails in non-interactive shells, which is why this file is NOT
+# in the top block).
+# Put future one-off shell-behavior tweaks here instead of editing the
+# template blocks inside bash/install.sh.
+
+# Case-insensitive autocompletion — pre-DotVibes ~/.bashrc behavior that was
+# lost when the shell was ported to the decoupled per-topic files.
+bind 'set completion-ignore-case on'

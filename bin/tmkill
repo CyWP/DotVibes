@@ -1,27 +1,10 @@
 #!/bin/bash
 # Usage: ./kill_tmux_session.zsh session_name
-# Switches to `main` session (creating it if needed) before killing the target session.
+# Kill the target session if it exists.
 
 session_name="$1"
-main_session="main"
 
-# Create 'main' session if it doesn't exist
-if ! tmux has-session -t "$main_session" 2>/dev/null; then
-  tmux new-session -d -s "$main_session"
-  echo "Session '$main_session' has been created."
-fi
-
-# Switch to 'main' session
-if [[ -n "$TMUX" ]]; then
-  tmux switch-client -t "$main_session"
-else
-  tmux attach -t "$main_session"
-fi
-
-# Kill the target session if it exists and is not 'main'
-if [[ "$session_name" == "$main_session" ]]; then
-  echo "Refusing to delete the 'main' session."
-elif tmux has-session -t "$session_name" 2>/dev/null; then
+if tmux has-session -t "$session_name" 2>/dev/null; then
   tmux kill-session -t "$session_name"
   echo "Session '$session_name' has been deleted."
 else

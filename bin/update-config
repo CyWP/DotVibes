@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# update-config — re-run the DotVibes install.sh from wherever the repo lives,
+# so changes you've pulled get re-applied (backups, symlinks, reloads).
+#
+# Reads the repo path from ~/.config/bash/.dotvibes_repo, which install.sh
+# rewrites on every run (so a moved/re-cloned repo self-corrects the next time
+# install.sh runs from its new location — or edit the file by hand).
+#
+#   update-config                 # re-apply everything
+# Idempotent: install.sh is safe to re-run.
+
+set -euo pipefail
+
+REPO_FILE="$HOME/.config/bash/.dotvibes_repo"
+
+# --- locate the repo --------------------------------------------------------------
+if [ ! -r "$REPO_FILE" ]; then
+  echo "error: $REPO_FILE not found" >&2
+  echo "hint: run ./install.sh from the repo once; it writes this file" >&2
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$REPO_FILE"
+if [ -z "${DOTVIBES_REPO:-}" ]; then
+  echo "error: $REPO_FILE does not define DOTVIBES_REPO" >&2
+  exit 1
+fi
+
+if [ ! -x "$DOTVIBES_REPO/install.sh" ]; then
+  echo "error: no working install.sh at DOTVIBES_REPO=$DOTVIBES_REPO" >&2
+  echo "hint: the repo probably moved or was deleted — re-run ./install.sh from its current location (it rewrites the path file), or fix $REPO_FILE by hand" >&2
+  exit 1
+fi
+
+# --- apply ------------------------------------------------------------------------
+echo "==> re-applying configs from ${DOTVIBES_REPO}"
+"$DOTVIBES_REPO/install.sh"

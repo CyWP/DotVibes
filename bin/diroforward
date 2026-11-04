@@ -1,1 +1,0 @@
-sshpass -p "$DIRO_PASS" ssh -Y -tt "$DIRO_USER@arcade.iro.umontreal.ca" "ssh -Y -L ${2}:${1}:${2} ${1}"

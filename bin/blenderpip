@@ -1,41 +1,81 @@
 #!/bin/bash
 
-# Path to Blender's Python interpreter
-BLENDER_PYTHON=/opt/blender-4.2.5-linux-x64/4.2/python/bin/python3.11
+# Call pip in Blender's bundled Python interpreter.
+#
+# Interpreter resolution order:
+#   1. the BLENDER_PYTHON env var (set it in bash/env_vars to pin a version)
+#   2. otherwise scan the usual install locations for a bundled
+#      <blender>/<version>/python/bin/python3.* executable; if several are
+#      found, pick one interactively by number.
+#
+# Everything after blenderpip is passed straight to pip — no command
+# rewriting, the args are yours:
+#   blenderpip install numpy
+#   blenderpip install numpy --upgrade
+#   blenderpip uninstall -y numpy
 
-# Check if Blender's Python interpreter exists
-if [[ ! -x "$BLENDER_PYTHON" ]]; then
-  echo "Error: Blender's Python interpreter not found at $BLENDER_PYTHON"
-  exit 1
+set -euo pipefail
+
+# --- 1. resolve Blender's bundled Python interpreter ------------------------------
+if [[ -n "${BLENDER_PYTHON:-}" ]]; then
+  if [[ ! -x "$BLENDER_PYTHON" ]]; then
+    echo "Error: BLENDER_PYTHON is set but not an executable file: $BLENDER_PYTHON"
+    exit 1
+  fi
+else
+  CANDIDATES=()
+  while IFS= read -r p; do
+    CANDIDATES+=("$p")
+  done < <(
+    find /opt /usr/local /usr/share "$HOME/Applications" "$HOME/Apps" \
+         "$HOME/.local/share/Blender Launcher/Versions" "$HOME/blender" \
+         -maxdepth 7 -type f -executable \
+         -path "*/python/bin/python3.*" 2>/dev/null | sort -u
+  )
+
+  case ${#CANDIDATES[@]} in
+    0)
+      echo "Error: no Blender-bundled python found." >&2
+      echo "Scan covered: /opt /usr/local /usr/share ~/Applications ~/Apps" >&2
+      echo "  ~/.local/share/Blender Launcher/Versions ~/blender" >&2
+      echo "Set BLENDER_PYTHON to the interpreter and retry:" >&2
+      echo "  BLENDER_PYTHON=/path/to/blender/<version>/python/bin/python3.x blenderpip ..." >&2
+      exit 1
+      ;;
+    1)
+      BLENDER_PYTHON="${CANDIDATES[0]}"
+      ;;
+    *)
+      echo "Multiple Blender python interpreters found:"
+      i=1
+      for p in "${CANDIDATES[@]}"; do
+        echo "  [$i] $p"
+        i=$((i + 1))
+      done
+      while :; do
+        read -r -p "Which one? [1-${#CANDIDATES[@]}]: " choice
+        if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#CANDIDATES[@]} )); then
+          BLENDER_PYTHON="${CANDIDATES[$((choice - 1))]}"
+          break
+        fi
+        echo "Not a valid option: $choice"
+      done
+      ;;
+  esac
 fi
 
 # Check if at least one argument is provided
 if [[ $# -eq 0 ]]; then
-  echo "Usage: $0 [install|uninstall] <package_name> [additional_pip_arguments]"
+  echo "Usage: $0 <pip arguments ...>   (called via: $BLENDER_PYTHON -m pip ...)"
   echo "Examples:"
   echo "  $0 install numpy"
-  echo "  $0 uninstall numpy"
   echo "  $0 install numpy --upgrade"
+  echo "  $0 uninstall -y numpy"
   exit 1
 fi
-
-# Extract the command (install/uninstall) and shift to leave only the remaining arguments
-COMMAND=$1
-shift
 
 # Ensure pip is installed in Blender's Python environment
 "$BLENDER_PYTHON" -m ensurepip --upgrade
 
-# Perform the install or uninstall operation
-case "$COMMAND" in
-  install)
-    "$BLENDER_PYTHON" -m pip install "$@"
-    ;;
-  uninstall)
-    "$BLENDER_PYTHON" -m pip uninstall -y "$@"
-    ;;
-  *)
-    echo "Error: Unknown command '$COMMAND'. Use 'install' or 'uninstall'."
-    exit 1
-    ;;
-esac
+# Pass everything straight through to pip
+exec "$BLENDER_PYTHON" -m pip "$@"

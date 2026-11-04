@@ -1,2 +1,0 @@
-echo $DIRO_PASS
-ssh diro -L 1738:localhost:8888

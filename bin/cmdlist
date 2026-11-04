@@ -1,3 +1,19 @@
+#!/bin/bash
+# cmdlist — print the DotVibes commands (the scripts actually in repo/bin).
+# Lists the REPO bin dir instead of ~/.local/bin on purpose: that folder is a
+# symlink farm that also collects tool-managed binaries (pip entry points,
+# micromamba, clangd, tree-sitter, ...), so it shows far more than this
+# config's scripts. install.sh is filtered out — it is not a user command.
+
+# Resolve repo root even when invoked through the symlink target
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR=$(cd -P "$(dirname "$SOURCE")" && pwd)
+  SOURCE=$(readlink "$SOURCE")
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+ROOT=$(cd -P "$(dirname "$SOURCE")/.." && pwd)
+
 echo "AVAILABLE COMMANDS"
 echo "------------------"
-ls ~/.local/bin
+ls "$ROOT/bin" | grep -v '^install.sh$' || true

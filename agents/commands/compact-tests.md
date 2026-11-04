@@ -1,5 +1,4 @@
 ---
-name: compact-tests
 description: Reduce the size of a test suite by removing redundant, overlapping, or overly specific tests while keeping code coverage within 5% of the baseline. Use when the user says tests are bloated, redundant, or too numerous, or asks to compact, prune, dedupe, consolidate, or slim down tests.
 ---
 
@@ -44,3 +43,7 @@ Write the report as a markdown file at `<repo_root>/.agents/compact_tests_REPORT
 - Any caveats (coverage tool missing, flaky tests excluded, manual-only pass).
 
 If coverage can't be kept within 5 points while removing meaningful numbers of tests, stop at the point where it holds and report that rather than forcing reductions.
+
+## Scope
+
+$ARGUMENTS

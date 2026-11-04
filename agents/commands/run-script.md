@@ -1,12 +1,10 @@
 ---
-name: run-script
 description: Runs a CLI command, bash script, or shell one-liner in the current checkout and handles failures. Small local problems (config typo, missing env var, wrong path, missing dependency, trivial syntax error) get fixed and the command is rerun; anything structural or requiring refactoring is reported without being fixed. Use whenever the user asks to "run", "execute", "try", or "check if this works" for a command, script, test suite, build, lint, migration, or npm/make/cargo/pytest-style invocation, or "and fix it if it's something simple".
-argument-hint: <command or script to run>
 ---
 
 # run-script
 
-Run a command in the current directory. If it fails, either apply a small local fix and rerun, or stop and report. The user manages their own worktrees (herdr), so the current checkout is already the sandbox: **never create worktrees or branches**.
+Run a command in the current directory. If it fails, either apply a small local fix and rerun, or stop and report. Work in the current checkout — creating worktrees or branches is not a run-script concern (experiment setup owns that); wherever you are is the sandbox.
 
 The command to run is: `$ARGUMENTS`
 

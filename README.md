@@ -22,7 +22,7 @@ self-contained `install.sh` (you can also run any of them on its own):
 | `nvim/` | Neovim config (Lua, lazy.nvim) | `~/.config/nvim` |
 | `ghostty/` | `ghostty/config.ghostty` | `~/.config/ghostty/config.ghostty` |
 | `herdr/` | `herdr/config.toml` | `~/.config/herdr/config.toml` |
-| `agents/` | `agents/skills/*` | skills: `~/.claude/skills/*` (commands come from the tools' own defaults) |
+| `agents/` | `agents/skills/*`, `agents/commands/*.md` | skills: `~/.claude/skills/*`; commands: `~/.claude/commands/*` **and** `~/.config/opencode/commands/*` |
 | `tmux/` | `tmux/tmux.conf` | `~/.tmux.conf` |
 | `appearance/` | `appearance/bg.png` | wallpaper: copied to `~/.local/share/backgrounds/`, GNOME keys set via gsettings |
 | `fonts/` | `fonts/Monaspace Argon/*.otf` (core 4 styles) | `~/.local/share/fonts/Monaspace Argon/*.otf` |
@@ -31,11 +31,11 @@ self-contained `install.sh` (you can also run any of them on its own):
 
 The agents component is intentionally linked into the Claude config dirs —
 opencode natively reads `~/.claude/skills` as a global compatibility source,
-so one skills link serves both tools. Commands are not carried in the repo:
-`learn` and `rmslop` are default opencode commands; if own ones are added
-later, `agents/commands/*.md` gets linked into `~/.claude/commands` **and**
-`~/.config/opencode/commands` (opencode does not read the former, so it needs
-its own link).
+so one skills link serves both tools. Commands (`ask-repo`, `map-repo`,
+`verify-repo`, `run-script`, `compact-tests`) are carried in the repo and
+linked into both `~/.claude/commands` **and** `~/.config/opencode/commands`
+(opencode does not read the former, so it needs its own link). The `learn` and
+`rmslop` commands are opencode defaults and are deliberately not in the repo.
 
 The `bash/` component resets `~/.bashrc` to the stock Debian skeleton plus
 two tiny source blocks that load the per-topic files from

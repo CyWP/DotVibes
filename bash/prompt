@@ -11,13 +11,21 @@
 # Sourced at the end of ~/.bashrc (after the interactive check), so it always
 # wins over the skeleton's own prompt.
 
-# Color detection: the skeleton PS1 section unsets color_prompt before we run,
-# so (re)decide here. 256color terminals get colors.
+# Color detection: don't rely on TERM-name matching alone — ghostty uses
+# TERM=xterm-ghostty (not *-256color), which took the non-color branch and
+# rendered the uncolored prompt's indented second line ("extra space at the
+# start of the line in ghostty only"). Ask the terminal what it can do
+# instead: known names first, then a tput capability probe as fallback.
 case "$TERM" in
-    xterm-color|*-256color)
+    xterm-color|*-256color|xterm-ghostty*|xterm-kitty*|alacritty*|rxvt*)
         color_prompt=yes
         ;;
 esac
+if [ -z "${color_prompt:-}" ] && command -v tput > /dev/null 2>&1; then
+    if tput setaf 1 > /dev/null 2>&1; then
+        color_prompt=yes
+    fi
+fi
 
 # Return the current Git branch and whether the working tree is clean.
 __prompt_git() {

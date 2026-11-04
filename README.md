@@ -22,12 +22,13 @@ self-contained `install.sh` (you can also run any of them on its own):
 | `nvim/` | Neovim config (Lua, lazy.nvim) | `~/.config/nvim` |
 | `ghostty/` | `ghostty/config.ghostty` | `~/.config/ghostty/config.ghostty` |
 | `herdr/` | `herdr/config.toml` | `~/.config/herdr/config.toml` |
-| `claude/` | `claude/skills/*`, `claude/commands/*.md` | skills: `~/.claude/skills/*`; commands: `~/.claude/commands/*` **and** `~/.config/opencode/commands/*` |
+| `agents/` | `agents/skills/*`, `agents/commands/*.md` | skills: `~/.claude/skills/*`; commands: `~/.claude/commands/*` **and** `~/.config/opencode/commands/*` |
+| `tmux/` | `tmux/tmux.conf` | `~/.tmux.conf` |
 | `fonts/` | `fonts/Monaspace Argon/*.otf` (core 4 styles) | `~/.local/share/fonts/Monaspace Argon/*.otf` |
-| `bash/` | shell files: `paths`, `prompt`, `aliases`, `mamba` | `~/.config/bash/.{paths,prompt,aliases,mamba}` |
+| `bash/` | shell files: `paths`, `prompt`, `aliases`, `extra` | `~/.config/bash/.{paths,prompt,aliases,extra}` (micromamba's init block + the tool-installer nvim/opencode PATH lines live directly in `~/.bashrc`, tool-managed) |
 | `bin/` | 20 hand-written scripts | `~/.local/bin/*` |
 
-The claude component is intentionally linked into the Claude config dirs —
+The agents component is intentionally linked into the Claude config dirs —
 opencode natively reads `~/.claude/skills` as a global compatibility source,
 so one skills link serves both tools; opencode does **not** read
 `~/.claude/commands`, so commands get an extra link into
@@ -36,9 +37,11 @@ so one skills link serves both tools; opencode does **not** read
 The `bash/` component resets `~/.bashrc` to the stock Debian skeleton plus
 two tiny source blocks that load the per-topic files from
 `~/.config/bash/` — `.env_vars` (local-only, keeps secrets out of the repo;
-seeded from `bash/env_vars.example`), `.paths`, `.mamba`, `.aliases` and
+seeded from `bash/env_vars.example`), `.paths`, `.aliases` and
 `.prompt` (two-line prompt with git info and python-env detection for
-venv/conda/mamba/pyenv). Your originals are always backed up
+venv/conda/mamba/pyenv). The micromamba init block is NOT a repo file — it is
+tool-managed and lives directly in `~/.bashrc` (`micromamba shell init` owns
+it). Your originals are always backed up
 (`~/.bashrc.bak-<timestamp>`). The `bin/` component symlinks the
 hand-written scripts into `~/.local/bin` — originals to
 `~/.local/bin-backups/` — replacing hand-rolled `gitfix`/`tm*` shells still
@@ -74,6 +77,7 @@ The config bootstraps plugins itself; tool binaries come from the OS:
 | make | telescope build step | usually preinstalled |
 | LSP/formatter binaries on `$PATH` (optional, per-language) | see list below | `pip install --user ruff basedpyright clang-format` (+`--break-system-packages` on Debian), `apt install clangd`/`brew install llvm`, `cargo install stylua` |
 | ImageMagick (optional) | renders jpg/avif/webp/svg/pdf inline images (png works without it) | `apt install imagemagick` |
+| ripgrep (optional) | `<Space>fg` telescope `live_grep` | `apt install ripgrep` |
 | Nerd Font (cosmetic) | icons | JetBrainsMono Nerd Font in the terminal |
 
 Missing tools are warnings, not failures — the related language simply loses

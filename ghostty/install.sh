@@ -7,7 +7,12 @@
 # Only the config file is linked; everything else in that dir stays local.
 # Idempotent: safe to re-run.
 
+# Source-safe (see the dispatcher note at the bottom): executing it is still
+# the preferred way to run, but `. ./install.sh` is now honored too — no state
+# leaks and an internal `exit 1` returns to the shell instead of closing it.
+_dv_install() { (
 set -euo pipefail
+
 
 # Resolve repo root even when invoked through the symlink target
 SOURCE="${BASH_SOURCE[0]}"
@@ -47,3 +52,21 @@ echo "-> ${TARGET} -> ${SRC}"
 
 echo
 echo "done — reload ghostty (ctrl+shift+,) or restart it to pick up changes"
+)
+}
+
+# --- source-safe dispatcher ----------------------------------------------------
+# Executed: run the install, exit with its status (unchanged behavior).
+# Sourced: run it in the subshell above, then `return` the status so the
+# interactive shell survives; the set-flags and all script variables die with
+# the subshell. Same pattern as check_deps.sh's _check_deps_run.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  _dv_install
+  _dv_st=$?
+  unset -f _dv_install
+  exit "$_dv_st"
+fi
+_dv_install
+_dv_st=$?
+unset -f _dv_install
+return "$_dv_st"

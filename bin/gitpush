@@ -1,0 +1,37 @@
+# Check if a commit message is provided
+if [ -z "$1" ]; then
+    echo "Usage: gpush <commit-message>"
+    exit 1
+fi
+
+# Get the current branch name
+current_branch=$(git branch --show-current)
+
+# Check if we are in a git repository
+if [ -z "$current_branch" ]; then
+    echo "Error: Not in a git repository."
+    exit 1
+fi
+
+# Show the branch name and commit message
+echo "You are about to push changes to branch '$current_branch' with the commit message:"
+echo "  \"$1\""
+read -p "Do you want to continue? (y/n) " confirm
+
+# Check confirmation
+if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+    echo "Push operation canceled."
+    exit 0
+fi
+
+# Add all changes to staging
+git add .
+
+# Commit with the provided message
+git commit -m "$1"
+
+# Push to the current branch
+git push origin "$current_branch"
+
+# Success message
+echo "Changes successfully pushed to branch '$current_branch'."

@@ -1,0 +1,22 @@
+# DotVibes shell — aliases.
+# Historically this came from ~/.bash_aliases; ~/.bashrc no longer sources
+# that file — everything lives here.
+
+# ls/dir/grep colored via dircolors (kept as-is from the old bashrc)
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors \
+        && eval "$(dircolors -b ~/.dircolors)" \
+        || eval "$(dircolors -b)"
+
+    alias ls='ls --color=auto'
+    alias dir='dir --color=auto'
+    alias vdir='vdir --color=auto'
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+# additional ls aliases
+alias ll='ls -l'
+alias la='ls -A'
+alias l='ls -CF'

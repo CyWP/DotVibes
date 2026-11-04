@@ -1,0 +1,109 @@
+#!/bin/bash
+
+# Default values
+TARGET_DIR="."
+RESOLUTION=""
+FRAMERATE=30
+BG_COLOR="white"
+OUTPUT_FILE="output.mp4"
+
+# Help text
+usage() {
+    echo "Usage: $0 [options]"
+    echo "Available Options:"
+    echo "  -d, --dir DIR      Target directory containing PNG images (default: current directory)"
+    echo "  -o, --output FILE  Output video file path (default: output.mp4)"
+    echo "  -r, --res REZ      Resolution (e.g., 1080x1080). If omitted, auto-detected from first image."
+    echo "  -f, --fps FPS      Frames per second (default: 30)"
+    echo "  -c, --color COLOR  FFmpeg background color name or hex (default: white, e.g., black, red, 0x1A1A1A)"
+    echo "  -h, --help         Display this help message"
+    exit 0
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -d|--dir)
+            TARGET_DIR="$2"
+            shift 2
+            ;;
+        -o|--output)
+            OUTPUT_FILE="$2"
+            shift 2
+            ;;
+        -r|--res)
+            RESOLUTION="$2"
+            shift 2
+            ;;
+        -f|--fps)
+            FRAMERATE="$2"
+            shift 2
+            ;;
+        -c|--color)
+            BG_COLOR="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            echo "Error: Unknown option $1"
+            usage
+            ;;
+    esac
+done
+
+# Check if target directory exists
+if [ ! -d "$TARGET_DIR" ]; then
+    echo "Error: Directory '$TARGET_DIR' does not exist."
+    exit 1
+fi
+
+# 1. Resolve resolution (passed or auto-detected)
+if [ -n "$RESOLUTION" ]; then
+    echo "Configured resolution: $RESOLUTION"
+else
+    # Find the first PNG file in the target directory
+    FIRST_IMAGE=$(ls "$TARGET_DIR"/*.png 2>/dev/null | head -n 1)
+    
+    if [ -z "$FIRST_IMAGE" ]; then
+        echo "Error: No .png files found in directory '$TARGET_DIR'."
+        exit 1
+    fi
+    
+    # Auto-detect dimensions using ffprobe
+    RESOLUTION=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$FIRST_IMAGE")
+    echo "Auto-detected resolution from $(basename "$FIRST_IMAGE"): $RESOLUTION"
+fi
+
+# 2. Extract Width (W) and Height (H)
+WIDTH=$(echo "$RESOLUTION" | cut -d'x' -f1)
+HEIGHT=$(echo "$RESOLUTION" | cut -d'x' -f2)
+
+# 3. Automatically adjust width to an even number (required by H.264)
+if [ $((WIDTH % 2)) -ne 0 ]; then
+    TARGET_WIDTH=$((WIDTH - 1))
+    echo "Warning: Odd width detected ($WIDTH). Automatically adjusting to $TARGET_WIDTH for H.264 compatibility."
+else
+    TARGET_WIDTH=$WIDTH
+fi
+
+# 4. Execute FFmpeg
+echo "Target directory: $TARGET_DIR"
+echo "Output file:      $OUTPUT_FILE"
+echo "Background color: $BG_COLOR"
+echo "Framerate:        $FRAMERATE fps"
+echo "Generating video..."
+
+# Run FFmpeg using the source folder pattern
+ffmpeg -framerate "$FRAMERATE" \
+       -pattern_type glob \
+       -i "$TARGET_DIR/*.png" \
+       -filter_complex "color=c=${BG_COLOR}:s=${WIDTH}x${HEIGHT} [bg]; [bg][0:v] overlay=format=auto:shortest=1, scale=${TARGET_WIDTH}:${HEIGHT}" \
+       -c:v libx264 \
+       -pix_fmt yuv420p \
+       -y \
+       "$OUTPUT_FILE"
+
+echo "Video successfully created: $OUTPUT_FILE (${TARGET_WIDTH}x${HEIGHT} @ ${FRAMERATE}fps)"
+

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Default to the current directory if no argument is provided
+TARGET="${1:-.}"
+
+echo "Running Ruff check and format on: ${TARGET}"
+
+# Run ruff check and format
+ruff check --fix "$TARGET" && ruff format "$TARGET"

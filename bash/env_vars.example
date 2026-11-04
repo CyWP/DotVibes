@@ -1,0 +1,20 @@
+# DotVibes shell — .env_vars template.
+#
+# The REAL file lives at ~/.config/bash/.env_vars — LOCAL-ONLY, never
+# committed anywhere (it holds credentials/tokens). This commented example
+# documents its expected shape. The shell component's install.sh copies this
+# file into place (as comments-only) when no real .env_vars exists yet.
+#
+# Sourced FIRST by ~/.bashrc (before PATH/aliases/prompt), so anything set
+# here is available to .paths, .mamba, scripts, ... in every shell — also
+# non-interactive ones.
+#
+# Keep values quoted if they contain special characters; example:
+
+#export EXAMPLE_USER="someone"
+#export EXAMPLE_TOKEN="..."
+#export EXAMPLE_CACHE_DIR="$HOME/shared/.cache/example"
+
+# Anything the tools export implicitly (e.g. GCC_COLORS) also belongs here so
+# it survives a .bashrc reset:
+#export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'

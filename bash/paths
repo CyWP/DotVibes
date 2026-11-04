@@ -1,0 +1,12 @@
+# DotVibes shell — every PATH addition in one place.
+# Sourced before the interactive check, so non-interactive shells get it too.
+# Additions are appended; duplicates are harmless (PATH stays searchable).
+
+# most scripts + tool binaries (pip entry points, micromamba, nvibe scripts...)
+export PATH="$PATH:$HOME/.local/bin"
+
+# neovim installed from the official release into /opt
+export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
+
+# opencode CLI
+export PATH="$HOME/.opencode/bin:$PATH"

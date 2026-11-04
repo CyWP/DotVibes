@@ -1,0 +1,5 @@
+if [ ! -z "$1" ]; then
+	sshpass -p "$DIRO_PASS" ssh -Y -tt $DIRO_USER@arcade.iro.umontreal.ca "ssh -Y ${1}"
+else
+	sshpass -p "$DIRO_PASS" ssh -Y $DIRO_USER@arcade.iro.umontreal.ca
+fi

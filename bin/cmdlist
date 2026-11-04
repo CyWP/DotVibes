@@ -1,0 +1,3 @@
+echo "AVAILABLE COMMANDS"
+echo "------------------"
+ls ~/.local/bin

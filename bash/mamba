@@ -1,0 +1,20 @@
+# DotVibes shell — micromamba initialization (machine-agnostic: uses $HOME).
+# Kept as its own file because it is neither PATH, env-var, alias nor prompt.
+# Existing MAMBA_* values (e.g. on another machine) are respected, not clobbered.
+
+alias mamba='micromamba'
+
+[ -n "${MAMBA_ROOT_PREFIX:-}" ] || export MAMBA_ROOT_PREFIX="$HOME/.micromamba"
+[ -n "${MAMBA_EXE:-}" ] || export MAMBA_EXE="$HOME/.local/bin/micromamba"
+
+_mamba_setup="$("$MAMBA_EXE" shell hook \
+    --shell bash \
+    --root-prefix "$MAMBA_ROOT_PREFIX" 2>/dev/null)"
+
+if [ $? -eq 0 ]; then
+    eval "$_mamba_setup"
+else
+    alias micromamba="$MAMBA_EXE"
+fi
+
+unset _mamba_setup

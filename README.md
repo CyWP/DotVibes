@@ -24,12 +24,25 @@ self-contained `install.sh` (you can also run any of them on its own):
 | `herdr/` | `herdr/config.toml` | `~/.config/herdr/config.toml` |
 | `claude/` | `claude/skills/*`, `claude/commands/*.md` | skills: `~/.claude/skills/*`; commands: `~/.claude/commands/*` **and** `~/.config/opencode/commands/*` |
 | `fonts/` | `fonts/Monaspace Argon/*.otf` (core 4 styles) | `~/.local/share/fonts/Monaspace Argon/*.otf` |
+| `bash/` | shell files: `paths`, `prompt`, `aliases`, `mamba` | `~/.config/bash/.{paths,prompt,aliases,mamba}` |
+| `bin/` | 20 hand-written scripts | `~/.local/bin/*` |
 
 The claude component is intentionally linked into the Claude config dirs —
 opencode natively reads `~/.claude/skills` as a global compatibility source,
 so one skills link serves both tools; opencode does **not** read
 `~/.claude/commands`, so commands get an extra link into
 `~/.config/opencode/commands`.
+
+The `bash/` component resets `~/.bashrc` to the stock Debian skeleton plus
+two tiny source blocks that load the per-topic files from
+`~/.config/bash/` — `.env_vars` (local-only, keeps secrets out of the repo;
+seeded from `bash/env_vars.example`), `.paths`, `.mamba`, `.aliases` and
+`.prompt` (two-line prompt with git info and python-env detection for
+venv/conda/mamba/pyenv). Your originals are always backed up
+(`~/.bashrc.bak-<timestamp>`). The `bin/` component symlinks the
+hand-written scripts into `~/.local/bin` — originals to
+`~/.local/bin-backups/` — replacing hand-rolled `gitfix`/`tm*` shells still
+kept where it was.
 
 The top-level `./install.sh` runs all of them; one component failing or a
 binary not being installed never blocks the others — missing packages are

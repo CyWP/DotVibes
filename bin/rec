@@ -1,0 +1,40 @@
+# Check if there are at least two arguments
+if [ "$#" -lt 2 ]; then
+    echo "Usage: rec <command> <output_file> [--no-console] [--open]"
+    echo "Used for recording execution output to a given file."
+    exit 1
+fi
+
+# Extract the command and output file
+command_to_run="$1"
+output_file="$2"
+
+# Initialize flags
+mirror_console=true
+open_output=false
+
+# Parse optional flags
+for arg in "$@"; do
+    case "$arg" in
+        --no-console)
+            mirror_console=false
+            ;;
+        --open)
+            open_output=true
+            ;;
+    esac
+done
+
+# Run the command
+if [ "$mirror_console" = true ]; then
+    # Mirror output to console and write to file
+    eval "$command_to_run" | tee "$output_file"
+else
+    # Write output only to the file
+    eval "$command_to_run" > "$output_file"
+fi
+
+# Open the output file in vim if the --open flag is passed
+if [ "$open_output" = true ]; then
+    vim "$output_file"
+fi

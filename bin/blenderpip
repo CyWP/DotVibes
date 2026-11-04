@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Path to Blender's Python interpreter
+BLENDER_PYTHON=/opt/blender-4.2.5-linux-x64/4.2/python/bin/python3.11
+
+# Check if Blender's Python interpreter exists
+if [[ ! -x "$BLENDER_PYTHON" ]]; then
+  echo "Error: Blender's Python interpreter not found at $BLENDER_PYTHON"
+  exit 1
+fi
+
+# Check if at least one argument is provided
+if [[ $# -eq 0 ]]; then
+  echo "Usage: $0 [install|uninstall] <package_name> [additional_pip_arguments]"
+  echo "Examples:"
+  echo "  $0 install numpy"
+  echo "  $0 uninstall numpy"
+  echo "  $0 install numpy --upgrade"
+  exit 1
+fi
+
+# Extract the command (install/uninstall) and shift to leave only the remaining arguments
+COMMAND=$1
+shift
+
+# Ensure pip is installed in Blender's Python environment
+"$BLENDER_PYTHON" -m ensurepip --upgrade
+
+# Perform the install or uninstall operation
+case "$COMMAND" in
+  install)
+    "$BLENDER_PYTHON" -m pip install "$@"
+    ;;
+  uninstall)
+    "$BLENDER_PYTHON" -m pip uninstall -y "$@"
+    ;;
+  *)
+    echo "Error: Unknown command '$COMMAND'. Use 'install' or 'uninstall'."
+    exit 1
+    ;;
+esac

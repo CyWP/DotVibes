@@ -1,0 +1,30 @@
+# Get the current branch name
+current_branch=$(git branch --show-current)
+
+# Check if we are in a git repository
+if [ -z "$current_branch" ]; then
+    echo "Error: Not in a git repository."
+    exit 1
+fi
+
+# Show the branch name and commit message
+echo "You are about to push/fix changes to branch '$current_branch.'"
+read -p "Do you want to continue? (y/n) " confirm
+
+# Check confirmation
+if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+    echo "Push operation canceled."
+    exit 0
+fi
+
+# Add all changes to staging
+git add .
+
+# Commit with the provided message
+git commit --amend --no-edit
+
+# Push to the current branch
+git push -f origin "$current_branch"
+
+# Success message
+echo "Changes successfully pushed to branch '$current_branch'."

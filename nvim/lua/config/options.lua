@@ -23,4 +23,4 @@ opt.shiftwidth = 4 -- >> / autoindent use 4 spaces per level
 opt.softtabstop = 4 -- <Tab> / <BS> in insert mode edit by 4 spaces
 opt.smartindent = true -- smart autoindent on new lines
 opt.cursorline = true -- highlight cursor line
-opt.scrolloff = 10 -- keep some lines above/below cursor visible
+opt.scrolloff = 20 -- keep cursor ~20 lines from window edges (closer to center)

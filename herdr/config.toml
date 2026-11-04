@@ -7,8 +7,8 @@ auto_switch = false
 [theme.custom]
 panel_bg = "reset"
 sidebar_bg = "reset"
-active_row_bg = "reset"
-selection_bg = "reset"
+active_row_bg = "#504945"
+selection_bg = "#665c54"
 surface0 = "reset"
 surface1 = "reset"
 surface_dim = "reset"

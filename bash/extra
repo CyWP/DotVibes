@@ -8,3 +8,12 @@
 # Case-insensitive autocompletion — pre-DotVibes ~/.bashrc behavior that was
 # lost when the shell was ported to the decoupled per-topic files.
 bind 'set completion-ignore-case on'
+
+# herdr panes export the generic TERM=xterm-256color, whose terminfo entry has
+# no extended-underline capabilities — so nvim (and anything else consulting
+# terminfo) denies itself undercurl/underline-color support even though
+# herdr's embedded ghostty VT fully renders both. TERM=xterm-ghostty's entry
+# carries Su + Smulx, making the honest declaration.
+if [ -n "${HERDR_PANE_ID:-}" ] && [ "$TERM" = "xterm-256color" ]; then
+  export TERM=xterm-ghostty
+fi

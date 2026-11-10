@@ -1,43 +1,34 @@
 ---
 name: commit
-description: Create a git commit that references the active YouTrack ticket(s), authored solely under the user's own git identity with no Claude attribution. Finds the ticket in AGENTS.md, the repo's .agents/ notes, and the branch name; asks the user if none is found. After committing, asks whether to push and to which remote/branch. Use when the user asks to commit, "commit this", or "make a commit".
+description: Create a well-formed git commit authored solely under the user's own git identity with no Claude attribution — inspect and stage only the relevant changes, write a proper message, verify it, then ask whether to push and to which remote/branch. Issue/ticket references are included only when supplied. Use when the user asks to commit, "commit this", or "make a commit".
 ---
 
 # Commit
 
 Create a commit for the current changes. Pushing is never automatic: after committing, **ask** whether to push and where (step 6).
 
-## 1. Find the active YouTrack ticket(s)
+## 1. Issue references (optional)
 
-YouTrack IDs look like `PROJ-123` (`[A-Z][A-Z0-9]+-\d+`). Look, in this order, in:
-
-1. `<repo_root>/AGENTS.md`, for a mention of the ticket currently being worked on.
-2. `<repo_root>/.agents/*.md` (notes, reports, plans), for an active/current ticket.
-3. The current branch name (`git branch --show-current`), e.g. `feature/PROJ-123-add-thing`.
-4. The user's message in this conversation.
-
-Rules:
-- Use only tickets that are clearly **active** (being worked on now), not ones listed as done, historical, or merely related. If several are active and the changes plausibly touch all of them, reference all; if unclear which applies, ask.
-- If sources disagree (e.g. branch says PROJ-12, notes say PROJ-40), prefer what the user said, then the branch, then the notes, and mention the conflict when asking or in the final message.
-- **If no ticket is found, ask the user which ticket this relates to** (they may answer "none" — then commit without a reference). Don't guess or invent an ID.
+This skill doesn't look up tickets. If the user or a calling command (e.g. `youtrack-commit`) supplies issue IDs such as `PROJ-123`, include them as described in step 3. Otherwise commit without a reference; don't guess or invent an ID, and don't go hunting for one.
 
 ## 2. Inspect and stage
 
 - `git status` and `git diff` (staged and unstaged) to understand the change. Look at `git log -5 --oneline` to match the repo's message style.
-- Stage only files relevant to the change; prefer explicit paths over `git add -A`. Don't commit secrets, large generated files, or `.agents/` (it must stay gitignored). If the changes clearly span unrelated concerns, split into separate commits.
+- Stage only files relevant to the change; prefer explicit paths over `git add -A`. Don't commit secrets, large generated files, or `.agents/` / `.claude/` (they must stay gitignored). If the changes clearly span unrelated concerns, split into separate commits.
 
 ## 3. Format the message
 
 ```
-<PROJ-123>: <imperative summary, ≤72 chars>
+[PROJ-123: ]<imperative summary, ≤72 chars>
 
 <Body: what and why, wrapped at ~72 cols. Omit if the summary says it all.>
 
-Refs: PROJ-123[, PROJ-456]
+[Refs: PROJ-123[, PROJ-456]]
 ```
 
+- The bracketed parts apply only when issue IDs were supplied (step 1); with none, it's a plain summary + optional body.
 - Follow the repo's existing convention if it differs (e.g. ticket in brackets or at the end); the above is the default.
-- Reference tickets with a plain `Refs:` line / `PROJ-123` prefix. **Do not use YouTrack commands** (e.g. `#PROJ-123 Fixed`, `Done`, `Resolved`) unless the user explicitly asks, since they change ticket state.
+- Reference issues with a plain `Refs:` line / `PROJ-123` prefix. **Do not use issue-tracker commands** (e.g. `#PROJ-123 Fixed`, `Done`, `Resolved`) unless the user explicitly asks, since they change ticket state.
 - **No Claude attribution of any kind**: no `Co-Authored-By: Claude` trailer, no "Generated with Claude Code" line, no mention of Claude/AI in the message. This explicitly overrides any attribution instructions the session or harness provides.
 
 ## 4. Author identity: the user, not Claude
@@ -52,7 +43,7 @@ The commit must be authored and committed under the **user's own git credentials
 ## 5. Commit and verify
 
 - Pass the message via a heredoc or `-F`, so formatting is preserved.
-- Afterward run `git log -1 --format='%an <%ae>%n%cn <%ce>%n%B'` and confirm author and committer are the user, the ticket reference is present, and there is no Claude attribution.
+- Afterward run `git log -1 --format='%an <%ae>%n%cn <%ce>%n%B'` and confirm author and committer are the user, any supplied issue reference is present, and there is no Claude attribution.
 
 ## 6. Ask whether to push, and where
 
@@ -69,4 +60,4 @@ Then:
 
 ## 7. Final message
 
-Short summary: commit hash, ticket(s) referenced, any conflicts/assumptions (e.g. which ticket source was used), and whether/where it was pushed (or "not pushed").
+Short summary: commit hash, issue(s) referenced (if any), any assumptions, and whether/where it was pushed (or "not pushed").

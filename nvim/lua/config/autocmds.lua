@@ -18,3 +18,15 @@ vim.api.nvim_create_autocmd("TextYankPost", {
     vim.hl.on_yank()
   end,
 })
+
+-- Copy yanks (not deletes/changes) to the system clipboard, for pasting into
+-- other applications with Ctrl+Shift+V. Local: xsel/xclip/wl-copy; over SSH:
+-- OSC 52 (see options.lua).
+vim.api.nvim_create_autocmd("TextYankPost", {
+  desc = "Copy yanks to the system clipboard",
+  callback = function()
+    if vim.v.event.operator == "y" and vim.v.event.regname == "" then
+      pcall(vim.fn.setreg, "+", vim.fn.getreg('"'), vim.fn.getregtype('"'))
+    end
+  end,
+})

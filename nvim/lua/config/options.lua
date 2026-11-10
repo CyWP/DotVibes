@@ -24,3 +24,21 @@ opt.softtabstop = 4 -- <Tab> / <BS> in insert mode edit by 4 spaces
 opt.smartindent = true -- smart autoindent on new lines
 opt.cursorline = true -- highlight cursor line
 opt.scrolloff = 20 -- keep cursor ~20 lines from window edges (closer to center)
+
+-- Clipboard: yanks (only `y`, not deletes) are copied to the system clipboard
+-- so Ctrl+Shift+V works in other apps; see the TextYankPost hook in
+-- autocmds.lua. Over SSH there is no local clipboard tool, so copy goes out as
+-- an OSC 52 escape sequence that the *local* terminal turns into a clipboard
+-- write. Pasting inside nvim just uses nvim's own registers (terminals rarely
+-- answer OSC 52 reads), so `p` is unaffected.
+if vim.env.SSH_TTY then
+  local osc52 = require("vim.ui.clipboard.osc52")
+  local function from_register()
+    return { vim.fn.getreg("", 1, true), vim.fn.getregtype("") }
+  end
+  vim.g.clipboard = {
+    name = "OSC 52 (copy only)",
+    copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
+    paste = { ["+"] = from_register, ["*"] = from_register },
+  }
+end

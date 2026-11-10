@@ -67,6 +67,13 @@ _check_deps_run() {
     else
       any=1; bucket hard "tree-sitter not found — parsers can't install (see README: binary into ~/.local/bin)"
     fi
+    # telescope-fzf-native is one lazy.nvim build (make) away, but if that
+    # build silently failed the C module is missing and telescope errors on
+    # <Space>ff forever — catch it here.
+    local fzf="$HOME/.local/share/nvim/lazy/telescope-fzf-native.nvim"
+    if [ -d "$fzf" ] && [ ! -f "$fzf/build/libfzf.so" ]; then
+      any=1; bucket hard "telescope-fzf-native not built — :Lazy build telescope-fzf-native.nvim (or make in its dir)"
+    fi
     pip_hint="pip install --user ruff basedpyright clang-format  # Debian/Ubuntu: add --break-system-packages"
     for t in ruff basedpyright-langserver clang-format clangd stylua; do
       if ! have "$t"; then any=1; bucket soft "$t not found — $pip_hint"; fi

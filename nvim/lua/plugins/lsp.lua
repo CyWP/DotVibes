@@ -84,12 +84,23 @@ return {
     end
 
     local function set_python_path(path)
+      -- write through to the config store as well: basedpyright queries the
+      -- client's live `workspace/configuration` (section "python") for this
+      -- value, and future attaches (restarts, new buffers) should inherit it
+      -- too. Attached clients additionally get a didChangeConfiguration push.
+      vim.lsp.config("basedpyright", {
+        settings = { python = { pythonPath = path } },
+      })
       for _, client in ipairs(vim.lsp.get_clients({ name = "basedpyright", buffer = 0 })) do
         local settings = client.settings or client.config.settings or {}
         settings.python = vim.tbl_deep_extend("force", settings.python or {}, { pythonPath = path })
         client.settings = settings
         client:notify("workspace/didChangeConfiguration", { settings = client.settings })
       end
+      vim.notify(
+        ("basedpyright pythonPath set (session-wide, until nvim restarts): %s"):format(path),
+        vim.log.levels.INFO
+      )
     end
 
     vim.api.nvim_create_user_command("PythonEnv", function(opts)

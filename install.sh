@@ -48,7 +48,10 @@ done
 # configs after you've pulled changes. Written fresh on every install run, so
 # moving/re-cloning the repo fixes the path automatically: run ./install.sh
 # once from the new location.
-BASH_DIR="$HOME/.config/bash"
+# shared variables (DOTVIBES_CONFIG_DIR, ...), loaded straight from the repo
+# shellcheck disable=SC1091
+. "$ROOT/bash/env_vars"
+BASH_DIR="$DOTVIBES_CONFIG_DIR"
 mkdir -p "$BASH_DIR"
 REPO_FILE="$BASH_DIR/.dotvibes_repo"
 cat > "$REPO_FILE" <<EOF

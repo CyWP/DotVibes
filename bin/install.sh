@@ -24,6 +24,9 @@ while [ -L "$SOURCE" ]; do
 done
 ROOT=$(cd -P "$(dirname "$SOURCE")/.." && pwd)
 SRC_DIR="$ROOT/bin"
+# shared variables, straight from the repo so this works before anything is linked
+# shellcheck disable=SC1091
+. "$ROOT/bash/env_vars"
 
 # --- sanity check ----------------------------------------------------------------
 if [ ! -d "$SRC_DIR" ]; then
@@ -32,8 +35,8 @@ if [ ! -d "$SRC_DIR" ]; then
 fi
 ls -A "$SRC_DIR" > /dev/null 2>&1 || true
 
-TARGET="$HOME/.local/bin"
-BACKUP_DIR="$HOME/.local/bin-backups"
+TARGET="$LOCAL_BIN_DIR"
+BACKUP_DIR="${LOCAL_BIN_DIR}-backups"
 TS=$(date +%Y%m%d-%H%M%S)
 mkdir -p "$TARGET" "$BACKUP_DIR"
 

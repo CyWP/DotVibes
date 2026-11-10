@@ -3,5 +3,4 @@
 # Additions are appended; duplicates are harmless (PATH stays searchable).
 
 # most scripts + tool binaries (pip entry points, micromamba, nvibe scripts...)
-export PATH="$PATH:$HOME/.local/bin"
-
+export PATH="$PATH:${LOCAL_BIN_DIR:-$HOME/.local/bin}"

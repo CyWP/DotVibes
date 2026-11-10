@@ -1,0 +1,25 @@
+# DotVibes shell — .env_usr template.
+#
+# The REAL file lives at ~/.config/bash/.env_usr — LOCAL-ONLY, never
+# committed anywhere (it holds credentials/tokens/machine-specific values).
+# This commented example documents its expected shape. The shell component's
+# install.sh copies it into place (comments-only, perms 600) when no real
+# .env_usr exists yet, and never overwrites an existing one.
+#
+# Shared, non-sensitive variables (paths reused by several scripts, skills,
+# ...) belong in the tracked bash/env_vars instead.
+#
+# Sourced by ~/.bashrc right AFTER .env_vars (so anything here can override a
+# shared default) and before PATH/aliases/prompt — also in non-interactive
+# shells.
+#
+# Keep values quoted if they contain special characters; example:
+
+#export YOUTRACK_URL="https://your-instance.myjetbrains.com"
+#export YOUTRACK_TOKEN="perm:..."
+#export YOUTRACK_ONLY_MINE=1
+#export EXAMPLE_USER="someone"
+
+# Anything the tools export implicitly (e.g. GCC_COLORS) also belongs here so
+# it survives a .bashrc reset:
+#export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'

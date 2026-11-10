@@ -1,0 +1,23 @@
+# DotVibes shell — shared environment variables (tracked in the repo).
+#
+# Linked to ~/.config/bash/.env_vars and sourced FIRST by ~/.bashrc (also in
+# non-interactive shells); the install.sh scripts and bin/ scripts load it too.
+# Put NON-SENSITIVE values here that several files reuse — mostly paths — so
+# each one is defined once. Secrets and machine-specific values go in
+# ~/.config/bash/.env_usr (sourced right after this file, so it can override).
+#
+# Plain `export NAME="..."` lines only: no output, no side effects, safe to
+# source repeatedly.
+
+# --- DotVibes itself ---------------------------------------------------------
+export DOTVIBES_CONFIG_DIR="$HOME/.config/bash"      # where bash/* get linked
+
+# --- install targets shared by installers and scripts --------------------------
+export LOCAL_BIN_DIR="$HOME/.local/bin"              # bin/* land here (on PATH)
+export APPLICATIONS_DIR="$HOME/.local/share/applications"  # appinstall bundles, .desktop files
+export CLAUDE_DIR="$HOME/.claude"                    # skills/ + commands/ links
+export OPENCODE_CONFIG_DIR="$HOME/.config/opencode"  # commands/ links
+
+# --- dev data --------------------------------------------------------------------
+export DEV_DIR="$HOME/.dev"                          # local dev scratch/data root
+export YOUTRACK_OUT_DIR="$DEV_DIR/youtrack_tickets"  # youtrack-update output

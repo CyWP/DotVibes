@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+"""Sync YouTrack tickets that are In Progress / Ready for Review to Markdown files.
+
+Each run makes ~/.dev/youtrack_tickets/ mirror the current set of active tickets:
+  - new/active tickets are written (or refreshed) as <ID>.md
+  - tickets that left those states (Fixed, Done, etc.) have their .md removed
+Only files this script created are ever deleted (they carry a marker line).
+
+Setup:
+  1. In YouTrack: Profile > Account Security > New token (scope: YouTrack).
+  2. export YOUTRACK_URL="https://your-instance.myjetbrains.com"
+     export YOUTRACK_TOKEN="perm:xxxx"
+  3. pip install requests
+  4. python youtrack_export.py
+
+Optional environment variables:
+  YOUTRACK_STATES      comma-separated state names (default: "In Progress,Ready for Review")
+  YOUTRACK_STATE_FIELD name of the state field      (default: "State")
+  YOUTRACK_ONLY_MINE   set to 1 to limit to tickets assigned to you
+  YOUTRACK_PROJECT     limit to one project short name, e.g. "ABC"
+  YOUTRACK_OUT_DIR     output folder                (set in bash/env_vars: $DEV_DIR/youtrack_tickets)
+"""
+import os
+import re
+from datetime import datetime, timezone
+
+import requests
+
+BASE = os.environ["YOUTRACK_URL"].strip().rstrip("/")
+if not BASE.startswith(("http://", "https://")):
+    BASE = "https://" + BASE
+TOKEN = os.environ["YOUTRACK_TOKEN"]
+STATES = [s.strip() for s in os.environ.get("YOUTRACK_STATES", "In Progress,Ready for Review").split(",") if s.strip()]
+STATE_FIELD = os.environ.get("YOUTRACK_STATE_FIELD", "State")
+# YOUTRACK_OUT_DIR comes from bash/env_vars; the default only covers shells that never loaded it
+OUT_DIR = os.path.expanduser(os.environ.get("YOUTRACK_OUT_DIR", "~/.dev/youtrack_tickets"))
+MARKER = "<!-- youtrack-export -->"
+
+FIELDS = (
+    "idReadable,summary,description,created,updated,"
+    "reporter(login,fullName),"
+    "customFields(name,value(name,login,fullName,text)),"
+    "comments(text,created,author(login,fullName))"
+)
+
+
+def build_query():
+    states = ", ".join("{%s}" % s for s in STATES)
+    parts = [f"{STATE_FIELD}: {states}"]
+    if os.environ.get("YOUTRACK_ONLY_MINE") == "1":
+        parts.append("for: me")
+    if os.environ.get("YOUTRACK_PROJECT"):
+        parts.append(f"project: {os.environ['YOUTRACK_PROJECT']}")
+    return " ".join(parts)
+
+
+def ts(ms):
+    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+
+def field_value(v):
+    if v is None:
+        return "-"
+    if isinstance(v, list):
+        return ", ".join(field_value(x) for x in v) or "-"
+    if isinstance(v, dict):
+        return v.get("name") or v.get("fullName") or v.get("login") or v.get("text") or "-"
+    return str(v)
+
+
+def fetch_all(query):
+    headers = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/json"}
+    issues, skip, page = [], 0, 50
+    while True:
+        r = requests.get(
+            f"{BASE}/api/issues",
+            headers=headers,
+            params={"query": query, "fields": FIELDS, "$top": page, "$skip": skip},
+            timeout=30,
+        )
+        r.raise_for_status()
+        batch = r.json()
+        issues.extend(batch)
+        if len(batch) < page:
+            return issues
+        skip += page
+
+
+def to_markdown(i):
+    lines = [MARKER, f"# {i['idReadable']}: {i['summary']}", ""]
+    lines.append(f"- **Link:** {BASE}/issue/{i['idReadable']}")
+    if i.get("reporter"):
+        lines.append(f"- **Reporter:** {field_value(i['reporter'])}")
+    lines.append(f"- **Created:** {ts(i['created'])}")
+    lines.append(f"- **Updated:** {ts(i['updated'])}")
+    for f in i.get("customFields", []):
+        lines.append(f"- **{f['name']}:** {field_value(f.get('value'))}")
+    lines += ["", "## Description", "", i.get("description") or "_No description._", ""]
+    comments = i.get("comments") or []
+    if comments:
+        lines += ["## Comments", ""]
+        for c in comments:
+            lines += [f"### {field_value(c.get('author'))} - {ts(c['created'])}", "", c.get("text", ""), ""]
+    return "\n".join(lines)
+
+
+def is_ours(path):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.readline().strip() == MARKER
+    except OSError:
+        return False
+
+
+def main():
+    query = build_query()
+    # Fetch first: if the request fails, nothing gets deleted.
+    issues = fetch_all(query)
+
+    os.makedirs(OUT_DIR, exist_ok=True)
+    keep = set()
+    for issue in issues:
+        name = re.sub(r"[^\w.-]+", "_", issue["idReadable"]) + ".md"
+        keep.add(name)
+        with open(os.path.join(OUT_DIR, name), "w", encoding="utf-8") as fh:
+            fh.write(to_markdown(issue))
+
+    removed = []
+    for name in os.listdir(OUT_DIR):
+        path = os.path.join(OUT_DIR, name)
+        if name.endswith(".md") and name not in keep and is_ours(path):
+            os.remove(path)
+            removed.append(name)
+
+    print(f"Query: {query}")
+    print(f"Wrote {len(keep)} file(s) to {OUT_DIR}/")
+    if removed:
+        print(f"Removed {len(removed)} no longer active: {', '.join(sorted(removed))}")
+
+
+if __name__ == "__main__":
+    main()

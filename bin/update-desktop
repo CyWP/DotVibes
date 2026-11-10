@@ -1,1 +1,6 @@
-update-desktop-database ~/.local/share/applications
+#!/usr/bin/env bash
+# shared variables (installed by the bash component); inherited from the shell
+# normally, loaded here too so GUI/cron launches work
+# shellcheck disable=SC1091
+[ -r "$HOME/.config/bash/.env_vars" ] && . "$HOME/.config/bash/.env_vars"
+update-desktop-database "${APPLICATIONS_DIR:?APPLICATIONS_DIR unset — run update-config}"

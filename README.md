@@ -39,8 +39,9 @@ linked into both `~/.claude/commands` **and** `~/.config/opencode/commands`
 
 The `bash/` component resets `~/.bashrc` to the stock Debian skeleton plus
 two tiny source blocks that load the per-topic files from
-`~/.config/bash/` — `.env_vars` (local-only, keeps secrets out of the repo;
-seeded from `bash/env_vars.example`), `.paths`, `.aliases` and
+`~/.config/bash/` — `.env_vars` (shared paths/variables, linked to the tracked
+`bash/env_vars`), `.env_usr` (local-only, keeps secrets out of the repo;
+seeded from `bash/env_usr.example`), `.paths`, `.aliases` and
 `.prompt` (two-line prompt with git info and python-env detection for
 venv/conda/mamba/pyenv). The micromamba init block is NOT a repo file — it is
 tool-managed and lives directly in `~/.bashrc` (`micromamba shell init` owns

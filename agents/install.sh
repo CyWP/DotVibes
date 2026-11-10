@@ -49,8 +49,11 @@ if [ ! -d "$SKILLS_SRC" ]; then
 fi
 # commands are optional (see header note); the empty/missing dir is fine
 
-SKILLS_TARGET_DIR="$HOME/.claude/skills"
-COMMANDS_TARGET_DIRS=("$HOME/.claude/commands" "$HOME/.config/opencode/commands")
+# shared variables, straight from the repo so this works before anything is linked
+# shellcheck disable=SC1091
+. "$ROOT/bash/env_vars"
+SKILLS_TARGET_DIR="$CLAUDE_DIR/skills"
+COMMANDS_TARGET_DIRS=("$CLAUDE_DIR/commands" "$OPENCODE_CONFIG_DIR/commands")
 
 TS=$(date +%Y%m%d-%H%M%S)
 

@@ -11,7 +11,19 @@
 
 set -euo pipefail
 
-REPO_FILE="$HOME/.config/bash/.dotvibes_repo"
+# Load the shared (.env_vars) and local-only (.env_usr) variables explicitly,
+# so a re-apply does not depend on how this shell was started (cron, GUI
+# launcher, `env -i`, ...). `set -a` exports everything they define so the
+# install.sh below inherits it.
+set -a
+# shellcheck disable=SC1091
+for _f in .env_vars .env_usr; do
+  [ -r "$HOME/.config/bash/$_f" ] && . "$HOME/.config/bash/$_f"
+done
+unset _f
+set +a
+
+REPO_FILE="${DOTVIBES_CONFIG_DIR:-$HOME/.config/bash}/.dotvibes_repo"
 
 # --- locate the repo --------------------------------------------------------------
 if [ ! -r "$REPO_FILE" ]; then

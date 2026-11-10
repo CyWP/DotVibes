@@ -5,15 +5,18 @@
 # Design: ~/.bashrc returns to (nearly) the pristine Debian skeleton; all
 # DotVibes logic lives in per-topic files under ~/.config/bash/:
 #
-#   .env_vars   environment variables — LOCAL-ONLY, never in the repo
-#               (created from bash/env_vars.example if missing)
+#   .env_vars   shared, non-sensitive variables (paths reused by scripts,
+#               skills, installers) — a link to the tracked bash/env_vars
+#   .env_usr    secrets / machine-specific values — LOCAL-ONLY, never in the
+#               repo (seeded from bash/env_usr.example, perms 600); sourced
+#               right after .env_vars so it can override it
 #   .paths      every PATH addition in one place
 #   .aliases    shell aliases (replaces the old ~/.bash_aliases hook)
 #   .prompt     the two-line prompt (git + python env detection)
 #   .extra      misc bash code snippets (interactive only — e.g. readline
 #               settings like case-insensitive autocompletion)
 #
-# The micromamba init block and the nvim/opencode PATH lines are TOOL-MANAGED
+# The micromamba/conda init blocks and the nvim/opencode PATH lines are TOOL-MANAGED
 # (their own installers append them) and live directly in ~/.bashrc — they are
 # deliberately NOT repo files. Steps 5–6 below only guarantee what exists on
 # this machine still ends up wired after the bashrc reset; see the warnings
@@ -43,7 +46,11 @@ done
 ROOT=$(cd -P "$(dirname "$SOURCE")/.." && pwd)
 REPO_SHELL="$ROOT/bash"
 
-TARGET="$HOME/.config/bash"
+# shared variables (DOTVIBES_CONFIG_DIR, ...), straight from the repo so this
+# works before anything is linked
+# shellcheck disable=SC1091
+. "$REPO_SHELL/env_vars"
+TARGET="$DOTVIBES_CONFIG_DIR"
 BASHRC="$HOME/.bashrc"
 SKEL="/etc/skel/.bashrc"
 TS=$(date +%Y%m%d-%H%M%S)
@@ -53,7 +60,7 @@ if [ ! -d "$REPO_SHELL" ]; then
   echo "error: $REPO_SHELL missing — is the repo intact?" >&2
   exit 1
 fi
-for f in paths prompt aliases extra env_vars.example; do
+for f in paths prompt aliases extra env_vars env_usr.example; do
   if [ ! -f "$REPO_SHELL/$f" ]; then
     echo "error: $REPO_SHELL/$f missing — is the repo intact?" >&2
     exit 1
@@ -69,7 +76,7 @@ trap 'rm -rf "$WORK"' EXIT
 cat > "$WORK/top" <<'EOF'
 # >>> DotVibes (non-interactive: env vars, PATH) >>>
 _dv_dir="$HOME/.config/bash"
-for _dv_file in .env_vars .paths; do
+for _dv_file in .env_vars .env_usr .paths; do
     [ -r "$_dv_dir/$_dv_file" ] && . "$_dv_dir/$_dv_file"
 done
 unset _dv_dir _dv_file
@@ -112,7 +119,20 @@ else
 fi
 
 # --- 2. symlink the per-topic files ----------------------------------------------
-for name in paths prompt aliases extra; do
+# Migration: before the repo's env_vars existed, ~/.config/bash/.env_vars was
+# the LOCAL file holding secrets. That content now belongs in .env_usr; move it
+# there (never overwrite an existing .env_usr) before .env_vars becomes a link.
+if [ -e "$TARGET/.env_vars" ] && [ ! -L "$TARGET/.env_vars" ]; then
+  if [ ! -e "$TARGET/.env_usr" ]; then
+    mv "$TARGET/.env_vars" "$TARGET/.env_usr"
+    chmod 600 "$TARGET/.env_usr"
+    echo "-> moved your local ${TARGET}/.env_vars to ${TARGET}/.env_usr (secrets stay local; perms set to 600)"
+  else
+    mv "$TARGET/.env_vars" "$TARGET/backups/env_vars.$TS"
+    echo "warn: both a local .env_vars and a .env_usr exist — kept .env_usr; the old .env_vars is at ${TARGET}/backups/env_vars.$TS (merge anything you need into .env_usr)" >&2
+  fi
+fi
+for name in env_vars paths prompt aliases extra; do
   src="$REPO_SHELL/$name"
   dst="$TARGET/.$name"
   if [ -e "$dst" ] && [ ! -L "$dst" ]; then
@@ -123,11 +143,12 @@ for name in paths prompt aliases extra; do
   echo "-> ${dst} -> ${src}"
 done
 
-# --- 3. seed ~/.env_vars if it does not exist (never overwrite!) ------------------
-if [ ! -e "$TARGET/.env_vars" ]; then
-  cp "$REPO_SHELL/env_vars.example" "$TARGET/.env_vars"
-  echo "-> seeded ${TARGET}/.env_vars from the repo template (comments only)"
-  echo "warn: no real values in it yet — moved your machine's secrets there manually if intended; missing exports referenced by scripts/apps will be unset" >&2
+# --- 3. seed .env_usr if it does not exist (never overwrite!) ---------------------
+if [ ! -e "$TARGET/.env_usr" ]; then
+  cp "$REPO_SHELL/env_usr.example" "$TARGET/.env_usr"
+  chmod 600 "$TARGET/.env_usr"
+  echo "-> seeded ${TARGET}/.env_usr from the repo template (comments only, perms 600)"
+  echo "warn: no real values in it yet — add your secrets there manually if intended; missing exports referenced by scripts/apps will be unset" >&2
 fi
 
 # --- 4. migrate older wirings (mamba used to be a DotVibes-sourced file) -----------
@@ -147,6 +168,14 @@ if grep -q '\.env_vars \.paths \.mamba' "$BASHRC" 2> /dev/null; then
     "$BASHRC"
   bash -n "$BASHRC"
   echo "-> dropped the .mamba source from the DotVibes block in ${BASHRC} (backup at ${BASHRC}.bak-$TS)"
+fi
+# older wirings sourced only .env_vars — add .env_usr (the local secrets file)
+if grep -q '>>> DotVibes (non-interactive' "$BASHRC" 2>/dev/null \
+   && ! grep -q '\.env_usr' "$BASHRC" 2>/dev/null; then
+  cp -p "$BASHRC" "$BASHRC.bak-$TS"
+  sed -i 's/for _dv_file in \.env_vars \.paths/for _dv_file in .env_vars .env_usr .paths/' "$BASHRC"
+  bash -n "$BASHRC"
+  echo "-> wired .env_usr into the DotVibes block in ${BASHRC} (backup at ${BASHRC}.bak-$TS)"
 fi
 # older wirings didn't source .extra — add it to the interactive block
 if grep -q '>>> DotVibes (interactive' "$BASHRC" 2>/dev/null \
@@ -186,6 +215,23 @@ EOF
   echo "-> appended the mamba init block to ${BASHRC}"
 else
   echo "warn: no micromamba on PATH and no mamba init block in ${BASHRC} — run 'micromamba shell init --shell bash' after installing micromamba" >&2
+fi
+
+# --- 5b. guarantee the tool-managed conda init block exists in ~/.bashrc ----------
+# Same idea as the mamba block: `conda init` owns it, it is never carried in the
+# repo, and re-runs leave an existing block alone. Without it `conda activate`
+# is unavailable in new shells.
+CONDA_BIN=$(command -v conda 2>/dev/null || true)
+[ -z "$CONDA_BIN" ] && [ -x "$HOME/miniconda3/bin/conda" ] && CONDA_BIN="$HOME/miniconda3/bin/conda"
+if grep -q '>>> conda initialize' "$BASHRC" 2> /dev/null; then
+  echo "-> conda init block already in ${BASHRC} (managed by conda)"
+elif [ -n "$CONDA_BIN" ]; then
+  cp -p "$BASHRC" "$BASHRC.bak-$TS"
+  "$CONDA_BIN" init bash > /dev/null
+  bash -n "$BASHRC"
+  echo "-> ran 'conda init bash' (added the conda init block to ${BASHRC}; backup at ${BASHRC}.bak-$TS)"
+else
+  echo "-> no conda found and no conda init block in ${BASHRC} — fine unless you use conda (then run 'conda init bash')"
 fi
 
 # --- 6. guarantee tool-installer PATH lines (nvim, opencode) ----------------------

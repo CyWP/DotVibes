@@ -2,12 +2,14 @@
 
 ## THEME: environment variables / secrets are local-only
 **Claim:** Real env vars are not in the repo; they live in a moved/seeded local file.
-**Verdict:** Correct. The repo tracks only `bash/env_vars.example`, comments-only
-(no uncommented example exports; shape doc only). Real values live in
-`~/.config/bash/.env_vars` (perms 600, outside the repo, unwritable/unknown to
-git). `bash/install.sh` (# seed step) copies the example into place **only when
-the real file doesn't exist yet** and never overwrites it on re-runs.
-Caveat: local-only means no repo backup for `.env_vars` — by design
+**Verdict:** Correct for secrets. The repo tracks only `bash/env_usr.example`,
+comments-only (shape doc only). Real values live in `~/.config/bash/.env_usr`
+(perms 600, outside the repo). `bash/install.sh` (# seed step) copies the example
+into place **only when the real file doesn't exist yet** and never overwrites it
+on re-runs; a legacy local `.env_vars` is moved to `.env_usr` first. Shared,
+non-sensitive variables (paths) are tracked in `bash/env_vars`, linked to
+`~/.config/bash/.env_vars`; `~/.bashrc` sources `.env_vars`, then `.env_usr`.
+Caveat: local-only means no repo backup for `.env_usr` — by design
 (README: "keeps secrets out of the repo").
 
 ## THEME: installer-owned blocks live directly in ~/.bashrc

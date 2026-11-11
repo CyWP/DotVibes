@@ -3,7 +3,8 @@
 # (one of several components; the top-level install.sh runs this for you):
 #   1. check fontconfig tooling is present (missing = warning, not a failure)
 #   2. back up any existing real font files (untouched otherwise)
-#   3. symlink each font file -> ~/.local/share/fonts/Monaspace Argon/
+#   3. symlink each font file of every fonts/<Family>/ folder (.otf/.ttf)
+#      -> ~/.local/share/fonts/<Family>/ (Monaspace Argon, Areal, ...)
 #   4. run the fontconfig refresh (fc-cache -f) so Ghostty etc. find them
 # Symlinked per file so the target dir can still hold other styles of the
 # same family installed alongside. Idempotent: safe to re-run.
@@ -23,42 +24,45 @@ while [ -L "$SOURCE" ]; do
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
 ROOT=$(cd -P "$(dirname "$SOURCE")/.." && pwd)
-FONT_SRC_DIR="$ROOT/fonts/Monaspace Argon"
+FONTS_SRC="$ROOT/fonts"
 
 # --- sanity check / package warning ------------------------------------------
 if ! command -v fc-cache > /dev/null; then
   echo "warn: fontconfig (fc-cache) not found on PATH — fonts installed anyway;" \
     "install fontconfig so applications can actually discover them" >&2
 fi
-if [ ! -d "$FONT_SRC_DIR" ]; then
-  echo "error: $FONT_SRC_DIR missing — is the repo intact?" >&2
+if [ ! -d "$FONTS_SRC" ]; then
+  echo "error: $FONTS_SRC missing — is the repo intact?" >&2
   exit 1
 fi
 
-FONT_TARGET_DIR="$HOME/.local/share/fonts/Monaspace Argon"
-# backups live outside the fontconfig scan tree, or fc-cache indexes them too
-# and font pickers show the same font twice
-BACKUP_DIR="$HOME/.local/share/fonts-backups/Monaspace Argon"
-mkdir -p "$FONT_TARGET_DIR" "$BACKUP_DIR"
-
 TS=$(date +%Y%m%d-%H%M%S)
 
-# --- back up + symlink each font file -----------------------------------------
-for src in "$FONT_SRC_DIR"/*.otf; do
-  [ -e "$src" ] || continue
-  name=$(basename "$src")
-  target="$FONT_TARGET_DIR/$name"
-  if [ -e "$target" ] && [ ! -L "$target" ]; then
-    echo "-> existing $name found; moving it to ${BACKUP_DIR}/${name}.${TS} (untouched, not deleted)"
-    mv "$target" "$BACKUP_DIR/$name.$TS"
-  fi
-  ln -sfn "$src" "$target"
-  echo "-> ${target} -> ${src}"
+# --- per family folder (fonts/<Family>/): back up + symlink each font file ------
+# Targets: ~/.local/share/fonts/<Family>/. Backups live outside the fontconfig
+# scan tree, or fc-cache indexes them too and font pickers show duplicates.
+for fam_dir in "$FONTS_SRC"/*/; do
+  [ -d "$fam_dir" ] || continue
+  fam=$(basename "$fam_dir")
+  FONT_TARGET_DIR="$HOME/.local/share/fonts/$fam"
+  BACKUP_DIR="$HOME/.local/share/fonts-backups/$fam"
+  mkdir -p "$FONT_TARGET_DIR" "$BACKUP_DIR"
+  for src in "$fam_dir"*.otf "$fam_dir"*.ttf; do
+    [ -e "$src" ] || continue
+    name=$(basename "$src")
+    target="$FONT_TARGET_DIR/$name"
+    if [ -e "$target" ] && [ ! -L "$target" ]; then
+      echo "-> existing $name found; moving it to ${BACKUP_DIR}/${name}.${TS} (untouched, not deleted)"
+      mv "$target" "$BACKUP_DIR/$name.$TS"
+    fi
+    ln -sfn "$src" "$target"
+    echo "-> ${target} -> ${src}"
+  done
 done
 
 # --- the fontconfig refresh ----------------------------------------------------
 if command -v fc-cache > /dev/null; then
-  fc-cache -f "$FONT_TARGET_DIR" > /dev/null
+  fc-cache -f "$HOME/.local/share/fonts" > /dev/null
   echo "-> fontconfig cache refreshed (fc-cache -f)"
 fi
 

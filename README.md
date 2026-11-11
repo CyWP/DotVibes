@@ -25,7 +25,7 @@ self-contained `install.sh` (you can also run any of them on its own):
 | `agents/` | `agents/skills/*`, `agents/commands/*.md` | skills: `~/.claude/skills/*`; commands: `~/.claude/commands/*` **and** `~/.config/opencode/commands/*` |
 | `tmux/` | `tmux/tmux.conf` | `~/.tmux.conf` |
 | `appearance/` | `appearance/bg.png` | wallpaper: copied to `~/.local/share/backgrounds/`, GNOME keys set via gsettings |
-| `fonts/` | `fonts/Monaspace Argon/*.otf` (core 4 styles) | `~/.local/share/fonts/Monaspace Argon/*.otf` |
+| `fonts/` | `fonts/<Family>/*.otf,ttf` (Monaspace Argon, Areal) | `~/.local/share/fonts/<Family>/` |
 | `bash/` | shell files: `paths`, `prompt`, `aliases`, `extra` | `~/.config/bash/.{paths,prompt,aliases,extra}` (micromamba's init block + the tool-installer nvim/opencode PATH lines live directly in `~/.bashrc`, tool-managed) |
 | `bin/` | 16 hand-written scripts | `~/.local/bin/*` |
 

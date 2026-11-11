@@ -1,0 +1,409 @@
+/* @theme dotvibes */
+/* DotVibes default Marp theme. Use with `theme: dotvibes` in the front matter.
+   Look: ABC Areal (fonts/Areal, installed by fonts/install.sh), light weights,
+   strong size contrast, monochrome (black / greys — no colour), hairlines.
+   Classes (via `<!-- _class: x -->`): lead (title/section), invert (dark),
+   small (denser text). Layout: <div class="cols"><div>…</div><div>…</div></div>
+   gives two plain columns. */
+
+@import 'default';
+
+:root {
+  --ivory: #fbf9f4;    /* warm off-white: text/lines on the dark theme */
+  --bg: #ffffff;
+  --fg: #111111;       /* headings, lines */
+  --body: #1e1e1e;     /* running text: just under the headings' black */
+  --muted: #595959;    /* labels, footer, quotes: >= 7:1 on white for weak projectors */
+  --rule: #111111;     /* hairlines */
+  --ghost: #a6a6a6;    /* very light: deck title in the footer, cover byline (deliberately quiet) */
+  --faint: #cfc8b8;    /* secondary lines, code border (warm grey, visible on projectors) */
+  --code-bg: #f5f0e6;   /* highlighted material (code): warm cream on white */
+  /* explicit sans fallbacks (macOS, Windows, Linux) so a missing Areal never lands on a serif */
+  --sans: 'ABC Areal', 'Helvetica Neue', Helvetica, Arial, 'Segoe UI', 'Liberation Sans', 'Noto Sans', 'DejaVu Sans', system-ui, sans-serif;
+  --mono: 'Monaspace Argon NF', 'Monaspace Argon', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, Consolas, monospace;
+}
+
+section {
+  background: var(--bg);
+  color: var(--body);
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: var(--fs);
+  line-height: 1.45;
+  --fs: 26px;          /* fixed base: title, footer, page number size off this, NOT off the
+                          (class-dependent) body font-size, so `small` shrinks only the content */
+  --pad-y: 52px;
+  --pad-x: 68px;
+  padding: var(--pad-y) var(--pad-x);
+  align-content: start;
+}
+
+/* --- headings: large, regular weight; contrast comes from size + colour --- */
+h1, h2, h3 { color: var(--fg); font-family: var(--sans); font-weight: 400; margin: 0 0 0.5em; }
+/* titles: Areal Medium Italic (bolder + slight slant); use 700 for Bold Italic */
+h1 { font-size: calc(var(--fs) * 2.2); font-weight: 500; font-style: italic; letter-spacing: -0.015em; line-height: 1.1; }
+h2 { font-size: calc(var(--fs) * 1.7); font-weight: 500; font-style: italic; letter-spacing: -0.01em; line-height: 1.15; margin-bottom: 0.5em; }
+/* even out the gap title -> first content whatever comes first:
+   a list's first item drops its own margin, columns get a small one */
+h2 + ul > li:first-child, h2 + ol > li:first-child { margin-top: 0; }
+h2 + .cols { margin-top: var(--fs); }   /* collapses with the h2 margin: the larger wins */
+/* h3: small caps-style label */
+h3 {
+  font-size: 0.68em;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.8em;
+}
+
+strong { color: var(--fg); font-weight: 700; }
+a { color: var(--fg); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+
+/* --- lists: hollow circles ------------------------------------------------ */
+ul, ol { padding-left: 1.3em; }
+li { margin: 0.3em 0; }
+ul > li { list-style: none; position: relative; }
+ul > li::before {
+  content: '';
+  position: absolute;
+  left: -1em;
+  top: 0.6em;
+  width: 0.2em;
+  height: 0.2em;
+  box-sizing: border-box;
+  border: 1px solid var(--fg);
+  border-radius: 50%;
+}
+li::marker { color: var(--muted); }
+
+/* --- code ------------------------------------------------------------------ */
+code {
+  background: var(--code-bg);
+  border: 1px solid var(--faint);
+  border-radius: 3px;
+  padding: 0 0.3em;
+  font-family: var(--mono);
+  font-size: 0.8em;
+}
+pre { background: var(--code-bg); border: 1px solid var(--faint); border-radius: 0; padding: 0.6em 0.9em; }
+pre code { background: none; border: 0; padding: 0; font-size: 0.68em; }
+/* monochrome syntax highlighting: no hljs colours */
+section pre code [class*='hljs'] { color: var(--body) !important; }
+section pre code .hljs-comment { color: var(--muted) !important; }
+section pre code .hljs-keyword, section pre code .hljs-built_in { color: var(--fg) !important; font-weight: 700; }
+
+/* --- tables: open, hairlines only (top / header / bottom) ------------------ */
+/* `section table …` selectors: needed to beat the default theme's specificity */
+section table { border-collapse: collapse; font-size: 0.85em; border: 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+section table tr, section table tr:nth-child(2n) { background: none; border: 0; }
+section table th {
+  background: none;
+  color: var(--fg);
+  font-weight: 500;
+  text-align: left;
+  padding: 0.35em 1em 0.35em 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+}
+section table td { background: none; border: 0; border-bottom: 1px solid var(--faint); padding: 0.3em 1em 0.3em 0; }
+section table tr:last-child td { border-bottom: 0; }
+
+blockquote {
+  border-left: 1px solid var(--rule);
+  color: var(--muted);
+  margin: 0.8em 0;
+  padding-left: 1em;
+}
+
+img { background: transparent; }
+/* `![center h:430](x.png)`: centre an image on its own line */
+img[alt~='center'] { display: block; margin: 0 auto; }
+
+/* --- lone table / image: centred in the space under the title ----------------
+   Applies when a slide's only content is a table, or a single paragraph holding
+   only image(s) (`p:only-of-type > img`: no other paragraph, list, code, table
+   or columns). The title stays at the top; the content is centred horizontally
+   and vertically in the remaining area. With no title at all it is centred on
+   the whole slide. (No nested :has() — browsers drop the whole rule if used.)
+   Table-only and image-only are separate rules so one can never void the other. */
+section:has(> table):not(:has(> :is(p, ul, ol, pre, blockquote, div, figure))) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+section:has(> table):not(:has(> :is(p, ul, ol, pre, blockquote, div, figure))) > table {
+  align-self: center; justify-self: center; margin: 0;
+}
+section:has(> table):not(:has(> :is(h1, h2, h3, p, ul, ol, pre, blockquote, div, figure))) {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+section:has(> p:only-of-type > img):not(:has(> :is(ul, ol, pre, blockquote, table, div, figure))) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+section:has(> p:only-of-type > img):not(:has(> :is(ul, ol, pre, blockquote, table, div, figure))) > p {
+  align-self: center; justify-self: center; text-align: center; margin: 0;
+}
+section:has(> p:only-of-type > img):not(:has(> :is(h1, h2, h3, ul, ol, pre, blockquote, table, div, figure))) {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/* --- footer / page number ------------------------------------------------- */
+footer { color: var(--ghost); font-size: calc(var(--fs) * 0.6); font-weight: 400; letter-spacing: 0.06em; }
+/* footer = author + deck title, identical very light type (--ghost); the span
+   only adds the gap:  footer: 'Author <span class="ft-title">Deck title</span>' */
+footer .ft-title { color: inherit; font-weight: inherit; margin-left: 1.4em; }
+footer .ft-title.ft-only { margin-left: 0; }   /* no author before it */
+/* page number + 3 cubes: a 2x2 block in the bottom-right corner. The number sits
+   in the bottom-right cell; the other three cells are coloured cubes (colours
+   come from --c1..--c3, set per page in the generated block at the end of this
+   file). Block = 2 cells of --cube plus one --cube-gap; hidden when a deck has
+   no pagination. */
+section {
+  --cube: 26px;
+  --cube-gap: 4px;
+  --cube-right: 26px;
+  --cube-bottom: 20px;
+  --c1: #c8553d; --c2: #e2a13a; --c3: #7fa37f;   /* fallback for pages beyond the table */
+}
+section[data-marpit-pagination]::before {
+  content: '';
+  position: absolute;
+  right: var(--cube-right);
+  bottom: var(--cube-bottom);
+  width: calc(var(--cube) * 2 + var(--cube-gap));
+  height: calc(var(--cube) * 2 + var(--cube-gap));
+  pointer-events: none;
+  background:
+    linear-gradient(var(--c1), var(--c1)) 0 0 / var(--cube) var(--cube) no-repeat,
+    linear-gradient(var(--c2), var(--c2)) 100% 0 / var(--cube) var(--cube) no-repeat,
+    linear-gradient(var(--c3), var(--c3)) 0 100% / var(--cube) var(--cube) no-repeat;
+}
+section::after {
+  position: absolute;
+  right: var(--cube-right);
+  bottom: var(--cube-bottom);
+  left: auto; top: auto;
+  width: var(--cube); height: var(--cube);
+  padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--fg);
+  font-size: calc(var(--fs) * 0.62);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* --- logo / watermark ---------------------------------------------------------
+   The deck puts the logo in the header directive:
+     header: '<img class="logo tr" src="../logo.png">'
+   Corner class on the img: tl | tr | bl | br; add `wm` for a faded watermark.
+   (On the img, not the slide class: `<!-- _class: lead -->` would replace a
+   deck-wide `class:` and drop the logo's corner.) The header is an overlay, so
+   don't use it for text.
+   Top logos share the TITLE ROW: absolutely positioned (no layout effect, so
+   the title never moves), vertically centred on the h2's first line, flush
+   with the content margin. The h2 reserves that side so a long title wraps
+   before reaching the logo. Bottom logos sit above the footer / page number. */
+section { --logo-h: 36px; --logo-w: 160px; }
+section header { position: absolute; inset: 0; height: auto; padding: 0; pointer-events: none; }
+section header img.logo {
+  position: absolute;
+  height: var(--logo-h); width: auto; max-width: var(--logo-w);
+  object-fit: contain; background: none;
+}
+/* title row: section padding-top (--pad-y) + half of (h2 line box - logo height).
+   h2 line box = 26px * 1.7 * 1.15 = 50.8px */
+section header img.logo.tr { top: calc(var(--pad-y) + (50.8px - var(--logo-h)) / 2); right: var(--pad-x); }
+section header img.logo.tl { top: calc(var(--pad-y) + (50.8px - var(--logo-h)) / 2); left: var(--pad-x); }
+section header img.logo.br { bottom: 100px; right: var(--pad-x); }
+section header img.logo.bl { bottom: 56px; left: var(--pad-x); }
+section header img.logo.wm { opacity: 0.35; }
+/* logos are monochrome: greyscale on light slides, solid white on dark ones */
+section header img.logo { filter: grayscale(1); }
+section.invert header img.logo { filter: brightness(0) invert(1); }
+section:has(header img.logo.tr) h2 { padding-right: calc(var(--logo-w) + 1.2em); }
+section:has(header img.logo.tl) h2 { padding-left: calc(var(--logo-w) + 1.2em); }
+
+/* --- title / section slides ------------------------------------------------ */
+section.lead { align-content: center; text-align: center; }
+section.lead h1 { font-size: calc(var(--fs) * 2.8); font-style: normal; }
+section.lead h2 { font-size: var(--fs); font-weight: 400; font-style: normal; color: var(--muted); letter-spacing: 0.02em; margin-bottom: 0; }
+
+/* cover byline: smaller and very light, under the subtitle */
+section.lead .byline { margin: 2.4em 0 0; font-size: calc(var(--fs) * 0.6); letter-spacing: 0.08em; color: var(--ghost); }
+
+/* --- dark variant ---------------------------------------------------------- */
+section.invert {
+  --bg: #1a1a1a;
+  --fg: var(--ivory);
+  --body: #efede8;
+  --muted: #bab8b3;
+  --rule: var(--ivory);
+  --ghost: #6f6e6a;
+  --faint: #5e5d59;
+  --code-bg: #242322;
+}
+
+section.small { font-size: 21px; }   /* body only: titles/footer keep --fs */
+
+/* --- two columns (no divider: the h2 rule is the only separating line) ------ */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2.4em; }
+
+/* --- cover (title slide): `<!-- _class: lead cover -->` is all a deck needs ---
+   (plus `_header: ''` / `_footer: ''` to drop logo and footer text). One plain
+   square per palette colour (8), side by side and centred at the bottom:
+   a single 26px square plus box-shadow copies, all solid fills (no gradients).
+   No footer text, no corner cube block, no page number on the cover. */
+section.cover { --cube-pitch: calc(var(--cube) + var(--cube-gap)); }
+section.cover[data-marpit-pagination]::before,
+section.cover:not([data-marpit-pagination])::before {
+  content: '';
+  display: block;
+  position: absolute;
+  left: calc(50% - (var(--cube) * 8 + var(--cube-gap) * 7) / 2);
+  right: auto;
+  bottom: var(--cube-bottom);
+  width: var(--cube);
+  height: var(--cube);
+  pointer-events: none;
+  background: #c8553d;
+  box-shadow:
+    calc(var(--cube-pitch) * 1) 0 0 #e2a13a,
+    calc(var(--cube-pitch) * 2) 0 0 #7fa37f,
+    calc(var(--cube-pitch) * 3) 0 0 #8e5572,
+    calc(var(--cube-pitch) * 4) 0 0 #d98b8b,
+    calc(var(--cube-pitch) * 5) 0 0 #b8a05a,
+    calc(var(--cube-pitch) * 6) 0 0 #4a7bb7,
+    calc(var(--cube-pitch) * 7) 0 0 #8fb4d9;
+}
+section.cover[data-marpit-pagination]::after { display: none; }
+section.cover footer { display: none; }
+
+/* --- GENERATED: per-page cube colours (pages 1-120) ---------------------------
+   Pseudo-random but fixed (LCG seed 7), 3 distinct colours per page from the
+   palette: terracotta, ochre, sage, plum, rose, khaki, steel blue, sky blue.
+   (Colour is only for the cubes; text stays black/white.) To change the
+   palette, search-and-replace these hex values. */
+section[data-marpit-pagination="1"]{--c1:#b8a05a;--c2:#8fb4d9;--c3:#c8553d}
+section[data-marpit-pagination="2"]{--c1:#b8a05a;--c2:#c8553d;--c3:#d98b8b}
+section[data-marpit-pagination="3"]{--c1:#c8553d;--c2:#4a7bb7;--c3:#b8a05a}
+section[data-marpit-pagination="4"]{--c1:#c8553d;--c2:#4a7bb7;--c3:#8e5572}
+section[data-marpit-pagination="5"]{--c1:#b8a05a;--c2:#d98b8b;--c3:#c8553d}
+section[data-marpit-pagination="6"]{--c1:#8e5572;--c2:#e2a13a;--c3:#7fa37f}
+section[data-marpit-pagination="7"]{--c1:#b8a05a;--c2:#e2a13a;--c3:#d98b8b}
+section[data-marpit-pagination="8"]{--c1:#8fb4d9;--c2:#7fa37f;--c3:#b8a05a}
+section[data-marpit-pagination="9"]{--c1:#8fb4d9;--c2:#d98b8b;--c3:#7fa37f}
+section[data-marpit-pagination="10"]{--c1:#b8a05a;--c2:#8fb4d9;--c3:#c8553d}
+section[data-marpit-pagination="11"]{--c1:#c8553d;--c2:#e2a13a;--c3:#8fb4d9}
+section[data-marpit-pagination="12"]{--c1:#8e5572;--c2:#b8a05a;--c3:#7fa37f}
+section[data-marpit-pagination="13"]{--c1:#8e5572;--c2:#e2a13a;--c3:#b8a05a}
+section[data-marpit-pagination="14"]{--c1:#4a7bb7;--c2:#c8553d;--c3:#8e5572}
+section[data-marpit-pagination="15"]{--c1:#7fa37f;--c2:#e2a13a;--c3:#c8553d}
+section[data-marpit-pagination="16"]{--c1:#d98b8b;--c2:#7fa37f;--c3:#e2a13a}
+section[data-marpit-pagination="17"]{--c1:#8fb4d9;--c2:#7fa37f;--c3:#8e5572}
+section[data-marpit-pagination="18"]{--c1:#8e5572;--c2:#b8a05a;--c3:#8fb4d9}
+section[data-marpit-pagination="19"]{--c1:#e2a13a;--c2:#8e5572;--c3:#b8a05a}
+section[data-marpit-pagination="20"]{--c1:#e2a13a;--c2:#8fb4d9;--c3:#b8a05a}
+section[data-marpit-pagination="21"]{--c1:#b8a05a;--c2:#7fa37f;--c3:#d98b8b}
+section[data-marpit-pagination="22"]{--c1:#8fb4d9;--c2:#4a7bb7;--c3:#b8a05a}
+section[data-marpit-pagination="23"]{--c1:#c8553d;--c2:#8e5572;--c3:#8fb4d9}
+section[data-marpit-pagination="24"]{--c1:#d98b8b;--c2:#8e5572;--c3:#e2a13a}
+section[data-marpit-pagination="25"]{--c1:#b8a05a;--c2:#4a7bb7;--c3:#8e5572}
+section[data-marpit-pagination="26"]{--c1:#8fb4d9;--c2:#8e5572;--c3:#4a7bb7}
+section[data-marpit-pagination="27"]{--c1:#8e5572;--c2:#8fb4d9;--c3:#7fa37f}
+section[data-marpit-pagination="28"]{--c1:#7fa37f;--c2:#e2a13a;--c3:#4a7bb7}
+section[data-marpit-pagination="29"]{--c1:#e2a13a;--c2:#4a7bb7;--c3:#8e5572}
+section[data-marpit-pagination="30"]{--c1:#c8553d;--c2:#4a7bb7;--c3:#8e5572}
+section[data-marpit-pagination="31"]{--c1:#8e5572;--c2:#7fa37f;--c3:#b8a05a}
+section[data-marpit-pagination="32"]{--c1:#7fa37f;--c2:#4a7bb7;--c3:#e2a13a}
+section[data-marpit-pagination="33"]{--c1:#7fa37f;--c2:#d98b8b;--c3:#c8553d}
+section[data-marpit-pagination="34"]{--c1:#e2a13a;--c2:#d98b8b;--c3:#7fa37f}
+section[data-marpit-pagination="35"]{--c1:#d98b8b;--c2:#b8a05a;--c3:#c8553d}
+section[data-marpit-pagination="36"]{--c1:#d98b8b;--c2:#e2a13a;--c3:#8e5572}
+section[data-marpit-pagination="37"]{--c1:#7fa37f;--c2:#b8a05a;--c3:#8e5572}
+section[data-marpit-pagination="38"]{--c1:#8fb4d9;--c2:#4a7bb7;--c3:#7fa37f}
+section[data-marpit-pagination="39"]{--c1:#4a7bb7;--c2:#b8a05a;--c3:#7fa37f}
+section[data-marpit-pagination="40"]{--c1:#8fb4d9;--c2:#b8a05a;--c3:#c8553d}
+section[data-marpit-pagination="41"]{--c1:#c8553d;--c2:#b8a05a;--c3:#e2a13a}
+section[data-marpit-pagination="42"]{--c1:#7fa37f;--c2:#c8553d;--c3:#d98b8b}
+section[data-marpit-pagination="43"]{--c1:#b8a05a;--c2:#c8553d;--c3:#8e5572}
+section[data-marpit-pagination="44"]{--c1:#e2a13a;--c2:#7fa37f;--c3:#8fb4d9}
+section[data-marpit-pagination="45"]{--c1:#d98b8b;--c2:#e2a13a;--c3:#b8a05a}
+section[data-marpit-pagination="46"]{--c1:#8e5572;--c2:#d98b8b;--c3:#c8553d}
+section[data-marpit-pagination="47"]{--c1:#b8a05a;--c2:#8fb4d9;--c3:#8e5572}
+section[data-marpit-pagination="48"]{--c1:#b8a05a;--c2:#e2a13a;--c3:#c8553d}
+section[data-marpit-pagination="49"]{--c1:#4a7bb7;--c2:#7fa37f;--c3:#d98b8b}
+section[data-marpit-pagination="50"]{--c1:#b8a05a;--c2:#e2a13a;--c3:#8fb4d9}
+section[data-marpit-pagination="51"]{--c1:#8e5572;--c2:#4a7bb7;--c3:#b8a05a}
+section[data-marpit-pagination="52"]{--c1:#4a7bb7;--c2:#8fb4d9;--c3:#c8553d}
+section[data-marpit-pagination="53"]{--c1:#e2a13a;--c2:#c8553d;--c3:#8fb4d9}
+section[data-marpit-pagination="54"]{--c1:#e2a13a;--c2:#c8553d;--c3:#b8a05a}
+section[data-marpit-pagination="55"]{--c1:#c8553d;--c2:#8e5572;--c3:#4a7bb7}
+section[data-marpit-pagination="56"]{--c1:#8e5572;--c2:#4a7bb7;--c3:#8fb4d9}
+section[data-marpit-pagination="57"]{--c1:#d98b8b;--c2:#b8a05a;--c3:#4a7bb7}
+section[data-marpit-pagination="58"]{--c1:#b8a05a;--c2:#c8553d;--c3:#d98b8b}
+section[data-marpit-pagination="59"]{--c1:#e2a13a;--c2:#7fa37f;--c3:#d98b8b}
+section[data-marpit-pagination="60"]{--c1:#b8a05a;--c2:#e2a13a;--c3:#4a7bb7}
+section[data-marpit-pagination="61"]{--c1:#b8a05a;--c2:#d98b8b;--c3:#8fb4d9}
+section[data-marpit-pagination="62"]{--c1:#4a7bb7;--c2:#d98b8b;--c3:#c8553d}
+section[data-marpit-pagination="63"]{--c1:#8fb4d9;--c2:#b8a05a;--c3:#8e5572}
+section[data-marpit-pagination="64"]{--c1:#b8a05a;--c2:#7fa37f;--c3:#d98b8b}
+section[data-marpit-pagination="65"]{--c1:#8e5572;--c2:#e2a13a;--c3:#4a7bb7}
+section[data-marpit-pagination="66"]{--c1:#8fb4d9;--c2:#e2a13a;--c3:#b8a05a}
+section[data-marpit-pagination="67"]{--c1:#d98b8b;--c2:#c8553d;--c3:#b8a05a}
+section[data-marpit-pagination="68"]{--c1:#d98b8b;--c2:#b8a05a;--c3:#4a7bb7}
+section[data-marpit-pagination="69"]{--c1:#b8a05a;--c2:#8fb4d9;--c3:#d98b8b}
+section[data-marpit-pagination="70"]{--c1:#e2a13a;--c2:#4a7bb7;--c3:#7fa37f}
+section[data-marpit-pagination="71"]{--c1:#4a7bb7;--c2:#8fb4d9;--c3:#c8553d}
+section[data-marpit-pagination="72"]{--c1:#4a7bb7;--c2:#b8a05a;--c3:#7fa37f}
+section[data-marpit-pagination="73"]{--c1:#b8a05a;--c2:#e2a13a;--c3:#8fb4d9}
+section[data-marpit-pagination="74"]{--c1:#8fb4d9;--c2:#8e5572;--c3:#e2a13a}
+section[data-marpit-pagination="75"]{--c1:#e2a13a;--c2:#8fb4d9;--c3:#c8553d}
+section[data-marpit-pagination="76"]{--c1:#4a7bb7;--c2:#8e5572;--c3:#d98b8b}
+section[data-marpit-pagination="77"]{--c1:#8e5572;--c2:#8fb4d9;--c3:#e2a13a}
+section[data-marpit-pagination="78"]{--c1:#d98b8b;--c2:#8e5572;--c3:#b8a05a}
+section[data-marpit-pagination="79"]{--c1:#4a7bb7;--c2:#d98b8b;--c3:#8fb4d9}
+section[data-marpit-pagination="80"]{--c1:#8fb4d9;--c2:#4a7bb7;--c3:#c8553d}
+section[data-marpit-pagination="81"]{--c1:#b8a05a;--c2:#d98b8b;--c3:#8fb4d9}
+section[data-marpit-pagination="82"]{--c1:#4a7bb7;--c2:#b8a05a;--c3:#d98b8b}
+section[data-marpit-pagination="83"]{--c1:#7fa37f;--c2:#8e5572;--c3:#b8a05a}
+section[data-marpit-pagination="84"]{--c1:#d98b8b;--c2:#7fa37f;--c3:#c8553d}
+section[data-marpit-pagination="85"]{--c1:#8fb4d9;--c2:#8e5572;--c3:#c8553d}
+section[data-marpit-pagination="86"]{--c1:#7fa37f;--c2:#c8553d;--c3:#e2a13a}
+section[data-marpit-pagination="87"]{--c1:#4a7bb7;--c2:#c8553d;--c3:#d98b8b}
+section[data-marpit-pagination="88"]{--c1:#e2a13a;--c2:#8fb4d9;--c3:#b8a05a}
+section[data-marpit-pagination="89"]{--c1:#4a7bb7;--c2:#e2a13a;--c3:#d98b8b}
+section[data-marpit-pagination="90"]{--c1:#c8553d;--c2:#8e5572;--c3:#b8a05a}
+section[data-marpit-pagination="91"]{--c1:#c8553d;--c2:#7fa37f;--c3:#e2a13a}
+section[data-marpit-pagination="92"]{--c1:#4a7bb7;--c2:#7fa37f;--c3:#c8553d}
+section[data-marpit-pagination="93"]{--c1:#4a7bb7;--c2:#d98b8b;--c3:#7fa37f}
+section[data-marpit-pagination="94"]{--c1:#c8553d;--c2:#7fa37f;--c3:#d98b8b}
+section[data-marpit-pagination="95"]{--c1:#c8553d;--c2:#e2a13a;--c3:#b8a05a}
+section[data-marpit-pagination="96"]{--c1:#8e5572;--c2:#7fa37f;--c3:#b8a05a}
+section[data-marpit-pagination="97"]{--c1:#e2a13a;--c2:#d98b8b;--c3:#8e5572}
+section[data-marpit-pagination="98"]{--c1:#7fa37f;--c2:#8e5572;--c3:#8fb4d9}
+section[data-marpit-pagination="99"]{--c1:#7fa37f;--c2:#d98b8b;--c3:#e2a13a}
+section[data-marpit-pagination="100"]{--c1:#7fa37f;--c2:#4a7bb7;--c3:#e2a13a}
+section[data-marpit-pagination="101"]{--c1:#7fa37f;--c2:#e2a13a;--c3:#b8a05a}
+section[data-marpit-pagination="102"]{--c1:#c8553d;--c2:#e2a13a;--c3:#4a7bb7}
+section[data-marpit-pagination="103"]{--c1:#8fb4d9;--c2:#8e5572;--c3:#b8a05a}
+section[data-marpit-pagination="104"]{--c1:#4a7bb7;--c2:#7fa37f;--c3:#b8a05a}
+section[data-marpit-pagination="105"]{--c1:#d98b8b;--c2:#b8a05a;--c3:#e2a13a}
+section[data-marpit-pagination="106"]{--c1:#8fb4d9;--c2:#8e5572;--c3:#c8553d}
+section[data-marpit-pagination="107"]{--c1:#8fb4d9;--c2:#e2a13a;--c3:#d98b8b}
+section[data-marpit-pagination="108"]{--c1:#8e5572;--c2:#d98b8b;--c3:#7fa37f}
+section[data-marpit-pagination="109"]{--c1:#b8a05a;--c2:#d98b8b;--c3:#4a7bb7}
+section[data-marpit-pagination="110"]{--c1:#4a7bb7;--c2:#e2a13a;--c3:#d98b8b}
+section[data-marpit-pagination="111"]{--c1:#b8a05a;--c2:#4a7bb7;--c3:#c8553d}
+section[data-marpit-pagination="112"]{--c1:#8fb4d9;--c2:#8e5572;--c3:#c8553d}
+section[data-marpit-pagination="113"]{--c1:#d98b8b;--c2:#c8553d;--c3:#b8a05a}
+section[data-marpit-pagination="114"]{--c1:#8fb4d9;--c2:#d98b8b;--c3:#8e5572}
+section[data-marpit-pagination="115"]{--c1:#d98b8b;--c2:#4a7bb7;--c3:#c8553d}
+section[data-marpit-pagination="116"]{--c1:#b8a05a;--c2:#4a7bb7;--c3:#8fb4d9}
+section[data-marpit-pagination="117"]{--c1:#c8553d;--c2:#7fa37f;--c3:#8fb4d9}
+section[data-marpit-pagination="118"]{--c1:#8fb4d9;--c2:#c8553d;--c3:#d98b8b}
+section[data-marpit-pagination="119"]{--c1:#7fa37f;--c2:#c8553d;--c3:#8e5572}
+section[data-marpit-pagination="120"]{--c1:#b8a05a;--c2:#e2a13a;--c3:#8fb4d9}

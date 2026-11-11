@@ -27,7 +27,7 @@ while [ -L "$SOURCE" ]; do
 done
 ROOT=$(cd -P "$(dirname "$SOURCE")" && pwd)
 
-COMPONENTS=(nvim ghostty herdr agents tmux appearance fonts bash bin)
+COMPONENTS=(nvim ghostty herdr agents tmux appearance fonts bash bin slides)
 
 # --- helpers ---------------------------------------------------------------------
 is_ours() { # $1 = path: true iff a symlink pointing into this repo
@@ -117,13 +117,17 @@ undo_component() {
       if [ -f "$IMG" ]; then rm "$IMG"; echo "-> removed $IMG"; fi
       ;;
     fonts)
-      local d f b name
-      d="$HOME/.local/share/fonts/Monaspace Argon"
-      for f in "$d"/*; do [ -e "$f" ] || [ -L "$f" ] || continue; remove_link "$f"; done
-      for b in "$HOME/.local/share/fonts-backups/Monaspace Argon"/*; do
-        [ -e "$b" ] || continue
-        name="${b##*/}"; name="${name%.*}"
-        restore_from_dir "$name" "$HOME/.local/share/fonts-backups/Monaspace Argon" "$d/$name"
+      local d f b name fam_dir fam
+      for fam_dir in "$ROOT/fonts"/*/; do
+        [ -d "$fam_dir" ] || continue
+        fam=$(basename "$fam_dir")
+        d="$HOME/.local/share/fonts/$fam"
+        for f in "$d"/*; do [ -e "$f" ] || [ -L "$f" ] || continue; remove_link "$f"; done
+        for b in "$HOME/.local/share/fonts-backups/$fam"/*; do
+          [ -e "$b" ] || continue
+          name="${b##*/}"; name="${name%.*}"
+          restore_from_dir "$name" "$HOME/.local/share/fonts-backups/$fam" "$d/$name"
+        done
       done
       if command -v fc-cache > /dev/null 2>&1; then fc-cache -f > /dev/null 2>&1; echo "-> fontconfig cache refreshed"; fi
       ;;
@@ -172,6 +176,12 @@ undo_component() {
         name="${b##*/}"; name="${name%.*}"
         restore_from_dir "$name" "$HOME/.local/bin-backups" "$HOME/.local/bin/$name"
       done
+      ;;
+    slides)
+      # the marp-slides command and marp-build links are already swept by the
+      # agents / bin topics; only the theme CSS is slides-specific
+      undo_default "$HOME/.config/marp/marp.css"
+      undo_default "$HOME/.config/marp/marp-dark.css"
       ;;
   esac
 }

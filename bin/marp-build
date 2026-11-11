@@ -1,0 +1,391 @@
+#!/usr/bin/env bash
+# marp-build — render a Marp markdown file to PDF (default) or HTML.
+#
+#   marp-build <file.md> [output] [-t pdf|html] [-T light|dark] [--bundle]
+#              [--logo FILE] [--logo-corner tr|tl|bl|br[,wm]] [--background FILE]
+#              [--author NAME|none]
+#
+# The deck is plain content markdown (`# Title`, `---` between slides, ...). Everything
+# else is added here, automatically, in a temp copy (the deck is never touched):
+#   - front matter defaults: marp, theme dotvibes, paginate (anything the deck
+#     sets itself wins)
+#   - footer "<author> <deck title>" on every slide except the cover; the title is
+#     the first `# ` heading; author = `author:` in front matter, --author,
+#     $MARP_AUTHOR or `git config user.name` (none = omit)
+#   - cover: the first slide, when it has a `# ` heading, becomes the cover (no
+#     footer/logo/page number, a row of palette squares, a subtle author byline)
+#   - nothing else: logos and backgrounds are optional ARGUMENTS only, never
+#     defaults. --logo FILE adds a logo (never on the cover), --logo-corner
+#     tr|tl|bl|br[,wm] picks its corner (default tr; wm = faded watermark), and
+#     --background FILE puts an image behind every slide.
+
+set -euo pipefail
+
+# temp artefacts (dark-theme copy, bundle work dir, video posters) go away on exit
+tmp="" work="" posters=""
+cleanup() { [ -z "$tmp" ] || rm -f "$tmp"; [ -z "$work" ] || rm -rf "$work"; [ -z "$posters" ] || rm -rf "$posters"; }
+trap cleanup EXIT
+
+usage() { echo "usage: marp-build <file.md> [output] [-t pdf|html] [-T light|dark] [--bundle] [--logo FILE] [--logo-corner tr|tl|bl|br[,wm]] [--background FILE] [--author NAME|none]" >&2; exit 2; }
+
+in="" out="" type="" mode=light bundle=0 logo="" corner=tr background="" author=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -t|--type) [ $# -ge 2 ] || usage; type="$2"; shift 2 ;;
+    -T|--theme) [ $# -ge 2 ] || usage; mode="$2"; shift 2 ;;
+    --bundle) bundle=1; shift ;;
+    --logo) [ $# -ge 2 ] || usage; logo="$2"; shift 2 ;;
+    --logo-corner) [ $# -ge 2 ] || usage; corner="$2"; shift 2 ;;
+    --background) [ $# -ge 2 ] || usage; background="$2"; shift 2 ;;
+    --author) [ $# -ge 2 ] || usage; author="$2"; shift 2 ;;
+    -h|--help) usage ;;
+    -*) echo "marp-build: unknown option $1" >&2; usage ;;
+    *) if [ -z "$in" ]; then in="$1"; elif [ -z "$out" ]; then out="$1"; else usage; fi; shift ;;
+  esac
+done
+[ -n "$in" ] || usage
+[ -f "$in" ] || { echo "marp-build: $in not found" >&2; exit 1; }
+
+if [ -z "$type" ]; then
+  if [ "$bundle" = 1 ]; then type=html
+  else case "$out" in *.html) type=html ;; *) type=pdf ;; esac
+  fi
+fi
+if [ "$bundle" = 1 ] && [ "$type" != html ]; then
+  echo "marp-build: --bundle is HTML only (a PDF already embeds its fonts and images)" >&2
+  exit 2
+fi
+case "$type" in pdf|html) ;; *) echo "marp-build: type must be pdf or html" >&2; exit 2 ;; esac
+case "$mode" in light|dark) ;; *) echo "marp-build: theme must be light or dark" >&2; exit 2 ;; esac
+src_dir=$(cd -P "$(dirname "$in")" && pwd)   # image paths in the deck are relative to this
+if [ "$bundle" = 1 ]; then
+  command -v python3 > /dev/null || { echo "marp-build: --bundle needs python3" >&2; exit 1; }
+  [ -n "$out" ] || out="${in%.*}"
+  out="${out%/}"
+  bundle_dir="$out"
+  work=$(mktemp -d)
+  out="$work/deck.html"
+else
+  [ -n "$out" ] || out="${in%.*}.$type"
+  mkdir -p "$(dirname "$out")"
+fi
+
+css="${MARP_CSS:-$HOME/.config/marp/marp.css}"
+dark_css="${css%.css}-dark.css"
+theme_args=()
+theme_name=dotvibes
+if [ -f "$css" ]; then
+  theme_args=(--theme-set "$css")
+  [ -f "$dark_css" ] && theme_args+=("$dark_css")
+  if [ "$mode" = dark ]; then
+    [ -f "$dark_css" ] || { echo "marp-build: $dark_css missing (run slides/install.sh)" >&2; exit 1; }
+    theme_name=dotvibes-dark
+  fi
+  theme_args+=(--theme "$theme_name")
+else
+  echo "marp-build: warn: $css missing — using marp's default theme (run slides/install.sh)" >&2
+fi
+
+# Preprocessing, always, in a temp copy beside the input (so relative image paths
+# keep working; removed on exit). A front matter `theme:` beats the CLI flag, so
+# the dark theme is set in the copy as well. See the header comment for what gets
+# added; csv directives and (PDF only) <video> tags are expanded here too.
+command -v python3 > /dev/null || { echo "marp-build: python3 is required (deck preprocessing)" >&2; exit 1; }
+want_video=0
+{ [ "$type" = pdf ] && grep -q '<video' "$in"; } && want_video=1
+tmp="$(dirname "$in")/.marp-build.$$.$(basename "$in")"
+cp "$in" "$tmp"
+in="$tmp"
+posters=$(mktemp -d)
+python3 -I - "$in" "$src_dir" "$posters" "$want_video" "$theme_name" "$logo" "$author" "$corner" "$background" <<'PY'
+import csv, html, os, re, shutil, subprocess, sys
+
+path, src_dir, posters, want_video, theme_name, logo_cli, author_cli, corner_cli, bg_cli = sys.argv[1:10]
+text = open(path, encoding="utf-8").read()
+
+def resolve(p):
+    p = os.path.expanduser(p)
+    return p if os.path.isabs(p) else os.path.join(src_dir, p)
+
+# ---- front matter / cover / footer / logo -------------------------------------
+def yq(v):                      # YAML single-quoted scalar
+    return "'" + v.replace("'", "''") + "'"
+
+def split_front(t):
+    m = re.match(r'---[ \t]*\n(.*?)\n---[ \t]*(?:\n|$)', t, re.S)
+    return (m.group(1), t[m.end():]) if m else (None, t)
+
+def first_title(body):
+    fence = False
+    for line in body.split("\n"):
+        if line.lstrip().startswith("```"): fence = not fence
+        if not fence and line.startswith("# "):
+            return re.sub(r'[*_`]', '', line[2:]).strip()
+    return ""
+
+def first_slide_end(body):
+    fence = False; pos = 0
+    for line in body.split("\n"):
+        if line.lstrip().startswith("```"): fence = not fence
+        if not fence and re.match(r'---[ \t]*$', line): return pos
+        pos += len(line) + 1
+    return len(body)
+
+fm, body = split_front(text)
+keys = {}
+fm_lines = fm.split("\n") if fm is not None else []
+for l in fm_lines:
+    m = re.match(r'([A-Za-z][\w-]*):[ \t]*(.*)$', l)
+    if m: keys[m.group(1)] = m.group(2).strip().strip("'\"")
+
+# author
+author = keys.get("author") or author_cli or os.environ.get("MARP_AUTHOR")
+if not author:
+    try: author = subprocess.run(["git", "config", "user.name"], capture_output=True, text=True,
+                                 stdin=subprocess.DEVNULL).stdout.strip()
+    except Exception: author = ""
+if author.lower() == "none": author = ""
+title = keys.get("title") or first_title(body)
+
+add = []
+if "marp" not in keys: add.append("marp: true")
+if "paginate" not in keys: add.append("paginate: true")
+if "footer" not in keys and (author or title):
+    parts = []
+    if author: parts.append(html.escape(author))
+    if title: parts.append('<span class="ft-title%s">' % ("" if author else " ft-only") + html.escape(title) + '</span>')
+    add.append("footer: " + yq(" ".join(parts)))
+
+# logo and background: ONLY from the --logo / --background arguments (paths as given,
+# relative to the current directory); never a default, env var or deck setting
+def arg_file(path_arg, what):
+    f = os.path.abspath(os.path.expanduser(path_arg))
+    if not os.path.isfile(f): sys.exit(f"marp-build: {what} file not found: {f}")
+    return f
+
+if "header" not in keys and logo_cli:
+    lp = arg_file(logo_cli, "logo")
+    add.append("header: " + yq(f'<img class="logo {" ".join(html.escape(c) for c in corner_cli.replace(",", " ").split())}" src="{html.escape(lp)}">'))
+if bg_cli and "backgroundImage" not in keys:
+    bp = arg_file(bg_cli, "background")
+    add.append('backgroundImage: "url(\'' + bp.replace("\\", "\\\\").replace('"', '\\"').replace("'", "%27") + '\')"')
+    add.append("backgroundSize: cover")
+
+# theme: dark is forced (front matter would win over the CLI flag); light keeps the deck's own
+new_fm = []
+seen_theme = False
+for l in fm_lines:
+    if re.match(r'theme:', l):
+        seen_theme = True
+        if theme_name == "dotvibes-dark": l = "theme: dotvibes-dark"
+    new_fm.append(l)
+if not seen_theme: add.append("theme: " + theme_name)
+new_fm = [l for l in new_fm if l != ""] + add
+
+# cover: first slide with a `# ` heading (and no explicit class) is the cover
+end = first_slide_end(body)
+first, rest = body[:end], body[end:]
+if re.search(r'^# ', first, re.M) and "_class" not in first:
+    # blank line after the HTML block, or the following `---` is swallowed by it
+    byline = f'\n<p class="byline">{html.escape(author)}</p>\n\n' if author else "\n"
+    first = ("\n<!-- _class: lead cover -->\n<!-- _header: '' -->\n<!-- _footer: '' -->\n"
+             + first.rstrip("\n") + "\n" + byline)
+body = first + rest
+
+text = "---\n" + "\n".join(new_fm) + "\n---\n" + body
+
+# ---- csv -> markdown table ---------------------------------------------------
+def is_num(v):
+    try: float(v); return True
+    except ValueError: return False
+
+def esc(v):
+    return v.replace("|", "\\|").replace("\n", " ").strip()
+
+def csv_table(m):
+    body = m.group(1).strip()
+    mm = re.match(r'(?:"([^"]+)"|(\S+))\s*(.*)$', body, re.S)
+    name = mm.group(1) or mm.group(2)
+    opts = dict(kv.split("=", 1) for kv in mm.group(3).split() if "=" in kv)
+    file = resolve(name)
+    if not os.path.isfile(file):
+        sys.exit(f"marp-build: csv file not found: {name} (looked in {src_dir})")
+    sep = opts.get("sep") or ("\t" if file.lower().endswith(".tsv") else None)
+    with open(file, newline="", encoding="utf-8-sig") as f:
+        sample = f.read(4096); f.seek(0)
+        if not sep:
+            try: sep = csv.Sniffer().sniff(sample, delimiters=",;\t|").delimiter
+            except csv.Error: sep = ","
+        rows = [r for r in csv.reader(f, delimiter=sep) if any(c.strip() for c in r)]
+    if not rows:
+        sys.exit(f"marp-build: csv file is empty: {name}")
+    ncols = max(len(r) for r in rows)
+    rows = [r + [""] * (ncols - len(r)) for r in rows]
+    header, data = rows[0], rows[1:]
+    total = len(data)
+    max_rows = total if opts.get("max") == "all" else int(opts.get("max", 8))
+    max_cols = ncols if opts.get("cols") == "all" else int(opts.get("cols", 8))
+    shown = data[:max_rows]
+    cut_cols = ncols > max_cols
+    keep = list(range(min(ncols, max_cols)))
+    def cells(r): return [esc(r[i]) for i in keep] + (["…"] if cut_cols else [])
+    align = ["---:" if data and all(is_num(r[i].strip()) for r in data if r[i].strip()) and any(r[i].strip() for r in data) else "---" for i in keep]
+    if cut_cols: align.append("---")
+    out = ["| " + " | ".join(cells(header)) + " |", "| " + " | ".join(align) + " |"]
+    out += ["| " + " | ".join(cells(r)) + " |" for r in shown]
+    if total > len(shown):
+        out.append("| " + " | ".join(["…"] * len(align)) + " |")
+    note = ""
+    if total > len(shown) or cut_cols:
+        parts = []
+        if total > len(shown): parts.append(f"{len(shown)} of {total} rows")
+        if cut_cols: parts.append(f"{len(keep)} of {ncols} columns")
+        note = "\n\n*Showing " + ", ".join(parts) + f" — {os.path.basename(name)}*"
+        print(f"marp-build: note: {name}: showing " + ", ".join(parts), file=sys.stderr)
+    return "\n" + "\n".join(out) + note + "\n"
+
+text = re.sub(r'<!--\s*csv:\s*(.*?)-->', csv_table, text, flags=re.S)
+
+# ---- video (PDF builds only) --------------------------------------------------
+if want_video == "1":
+    n = 0
+    def attr(tag, name):
+        m = re.search(r'\b' + name + r'\s*=\s*["\']([^"\']+)["\']', tag)
+        return m.group(1) if m else None
+
+    def repl(m):
+        global n
+        block = m.group(0)
+        open_tag = re.match(r'<video\b[^>]*>', block).group(0)
+        src = attr(open_tag, "src")
+        if not src:
+            sm = re.search(r'<source\b[^>]*>', block)
+            src = attr(sm.group(0), "src") if sm else None
+        if not src:
+            return block
+        poster = attr(open_tag, "poster")
+        width = attr(open_tag, "width")
+        if not poster and shutil.which("ffmpeg") and not src.startswith(("http://", "https://")):
+            local = resolve(src)
+            if os.path.isfile(local):
+                n += 1
+                out = os.path.join(posters, f"poster{n}.png")
+                r = subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", "1", "-i", local,
+                                    "-frames:v", "1", out], stdin=subprocess.DEVNULL)
+                if r.returncode != 0 or not os.path.isfile(out):  # clip shorter than 1s
+                    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", local,
+                                    "-frames:v", "1", out], stdin=subprocess.DEVNULL)
+                if os.path.isfile(out):
+                    poster = out
+        if poster:
+            w = f"width:{width}px;" if width else ""
+            return f'<a href="{src}"><img src="{poster}" style="{w}max-width:100%"></a>'
+        return f'<a href="{src}">&#9654; {os.path.basename(src)}</a>'
+
+    text = re.sub(r'<video\b[^>]*>.*?</video>|<video\b[^>]*/>', repl, text, flags=re.S)
+
+open(path, "w", encoding="utf-8").write(text)
+PY
+# marp-cli: --html means "allow raw HTML in markdown", not the output format;
+# HTML is simply the default output, PDF needs --pdf.
+args=(--allow-local-files --html -o "$out" "${theme_args[@]}")
+[ "$type" = pdf ] && args+=(--pdf)
+
+# stdin from /dev/null: marp-cli otherwise waits on an open non-TTY stdin
+# (agent/CI shells, pipes) and hangs forever instead of converting.
+if command -v marp > /dev/null; then
+  marp "${args[@]}" "$in" < /dev/null
+elif command -v npx > /dev/null; then
+  npx --yes @marp-team/marp-cli "${args[@]}" "$in" < /dev/null
+else
+  echo "marp-build: neither marp nor npx found (npm i -g @marp-team/marp-cli)" >&2
+  exit 1
+fi
+
+if [ "$bundle" = 1 ]; then
+  # fonts: the installed copies (symlinks into the repo), else the repo itself
+  fonts_root="$HOME/.local/share/fonts"
+  [ -d "$fonts_root/Areal" ] || {
+    # shellcheck disable=SC1090
+    [ -f "$HOME/.config/bash/.dotvibes_repo" ] && . "$HOME/.config/bash/.dotvibes_repo"
+    fonts_root="${DOTVIBES_REPO:-}/fonts"
+  }
+  python3 -I - "$out" "$src_dir" "$bundle_dir" "$fonts_root" <<'PY'
+import html as H, os, re, shutil, sys, hashlib, urllib.parse, urllib.request
+
+page, src_dir, dest, fonts_root = sys.argv[1:5]
+doc = open(page, encoding="utf-8").read()
+
+# never touch a folder that isn't ours: only replace index.html + assets/
+os.makedirs(dest, exist_ok=True)
+for old in ("index.html", "assets"):
+    p = os.path.join(dest, old)
+    if os.path.isdir(p): shutil.rmtree(p)
+    elif os.path.exists(p): os.remove(p)
+img_dir = os.path.join(dest, "assets", "media")
+font_dir = os.path.join(dest, "assets", "fonts")
+os.makedirs(img_dir); os.makedirs(font_dir)
+
+seen = {}
+def fetch(ref):
+    """Copy/download a reference into assets/media; return the new relative URL."""
+    raw = H.unescape(ref).strip()
+    if not raw or raw.startswith(("data:", "#", "about:")): return None
+    if raw in seen: return seen[raw]
+    name = None
+    try:
+        if raw.startswith(("http://", "https://")):
+            req = urllib.request.Request(raw, headers={"User-Agent": "marp-build"})
+            data = urllib.request.urlopen(req, timeout=20).read()
+            base = os.path.basename(urllib.parse.urlparse(raw).path) or "remote"
+            if "." not in base: base += ".img"
+        else:
+            path = urllib.parse.unquote(urllib.parse.urlparse(raw).path if raw.startswith("file:") else raw)
+            if not os.path.isabs(path): path = os.path.join(src_dir, path)
+            data = open(path, "rb").read()
+            base = os.path.basename(path)
+        name = hashlib.sha1(raw.encode()).hexdigest()[:8] + "-" + re.sub(r"[^\w.\-]", "_", base)
+        open(os.path.join(img_dir, name), "wb").write(data)
+        seen[raw] = "assets/media/" + urllib.parse.quote(name)
+    except Exception as e:
+        print(f"marp-build: warn: could not bundle {raw!r}: {e}", file=sys.stderr)
+        seen[raw] = None
+    return seen[raw]
+
+def sub_src(m):
+    new = fetch(m.group(2))
+    return m.group(1) + new + m.group(3) if new else m.group(0)
+# media tags only — iframes (e.g. YouTube) are deliberately left online
+doc = re.sub(r'(<(?:img|video|source|audio)\b[^>]*?\bsrc=")([^"]+)(")', sub_src, doc)
+doc = re.sub(r'(<video\b[^>]*?\bposter=")([^"]+)(")', sub_src, doc)
+
+def sub_url(m):
+    new = fetch(m.group(2))
+    return m.group(1) + new + m.group(3) if new else m.group(0)
+# CSS url(...) incl. HTML-escaped quotes in style="" attributes (slide backgrounds)
+doc = re.sub(r'(url\((?:&quot;|["\']?))([^)"\'&]+?)((?:&quot;|["\']?)\))', sub_url, doc)
+
+# fonts
+faces = []
+def face(family, file, weight, style, folder):
+    src = os.path.join(fonts_root, folder, file)
+    if not os.path.isfile(src):
+        print(f"marp-build: warn: font {src} not found — left out of the bundle", file=sys.stderr); return
+    shutil.copyfile(src, os.path.join(font_dir, file))
+    fmt = "opentype" if file.endswith(".otf") else "truetype"
+    faces.append(f"@font-face{{font-family:'{family}';src:url('assets/fonts/{urllib.parse.quote(file)}') format('{fmt}');"
+                 f"font-weight:{weight};font-style:{style};font-display:swap}}")
+for f, w, st in [("Regular",400,"normal"),("RegularItalic",400,"italic"),("Medium",500,"normal"),
+                 ("MediumItalic",500,"italic"),("Bold",700,"normal"),("BoldItalic",700,"italic")]:
+    face("ABC Areal", f"ABCAreal-{f}.ttf", w, st, "Areal")
+for f, w, st in [("Regular",400,"normal"),("Bold",700,"normal")]:
+    face("Monaspace Argon NF", f"MonaspaceArgonNF-{f}.otf", w, st, "Monaspace Argon")
+if faces:
+    doc = doc.replace("</head>", "<style>" + "".join(faces) + "</style></head>", 1)
+
+open(os.path.join(dest, "index.html"), "w", encoding="utf-8").write(doc)
+print(f"-> {dest}/index.html (+ assets/: {len(os.listdir(img_dir))} media files, {len(os.listdir(font_dir))} fonts)")
+PY
+else
+  echo "-> $out"
+fi

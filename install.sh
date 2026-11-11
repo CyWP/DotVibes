@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # install.sh — set up every DotVibes-managed tool on this machine:
-#   nvim, ghostty, herdr, agents, tmux, appearance, fonts, bash, bin — each
+#   nvim, ghostty, herdr, agents, tmux, appearance, fonts, bash, bin, slides — each
 #   has its own <component>/install.sh (self-contained; you can also run any
 #   of them directly).
 # One component failing or a missing binary never blocks the others;
@@ -23,7 +23,7 @@ while [ -L "$SOURCE" ]; do
 done
 ROOT=$(cd -P "$(dirname "$SOURCE")" && pwd)
 
-COMPONENTS=(nvim ghostty herdr agents tmux appearance fonts bash bin)
+COMPONENTS=(nvim ghostty herdr agents tmux appearance fonts bash bin slides)
 
 declare -a problems=()
 for comp in "${COMPONENTS[@]}"; do

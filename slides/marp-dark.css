@@ -1,0 +1,21 @@
+/* @theme dotvibes-dark */
+/* Dark variant of dotvibes for the WHOLE deck (every slide, cover included).
+   Selected with `marp-build <deck> --theme dark`. Same values as the
+   `section.invert` block in marp.css — keep the two in sync. */
+
+@import 'dotvibes';
+
+/* `:not(#dv)` bumps specificity: marp rewrites the base :root rule above plain `section` */
+section:not(#dv) {
+  --bg: #1a1a1a;
+  --fg: var(--ivory);
+  --body: #efede8;
+  --muted: #bab8b3;
+  --rule: var(--ivory);
+  --ghost: #6f6e6a;
+  --faint: #5e5d59;
+  --code-bg: #242322;
+}
+
+/* logos solid white, as on `invert` slides */
+section header img.logo { filter: brightness(0) invert(1); }

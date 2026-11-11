@@ -157,6 +157,16 @@ fi
     done
     [ "$any" = 0 ] && echo "  [ok] nothing missing"
 
+    # --- slides -------------------------------------------------------------------
+    echo
+    echo "== slides (config: slides/) =="
+    if have marp || have npx; then correct "marp-cli (marp or npx)"
+    else bucket soft "marp-cli not found — marp-build needs it (npm i -g @marp-team/marp-cli)"
+    fi
+    have python3 || bucket hard "python3 not found — marp-build needs it (front matter, cover, CSV tables, --bundle)"
+    have_group chromium chromium-browser google-chrome google-chrome-stable chrome \
+      || bucket soft "no Chrome/Chromium found — marp-build PDF export needs one (HTML works without)"
+
     # --- summary ------------------------------------------------------------------
     echo
     if [ "$hard" -gt 0 ] || [ "$soft" -gt 0 ]; then

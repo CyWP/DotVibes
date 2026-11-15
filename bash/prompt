@@ -27,6 +27,39 @@ if [ -z "${color_prompt:-}" ] && command -v tput > /dev/null 2>&1; then
     fi
 fi
 
+# Palette: the herdr theme's colours (herdr-app/themes/herdr-tui-layout.json):
+#   arrow line   muted #b9b4a6 (the theme's muted grey-beige)
+#   user@host    bright peach #ffaf80 (the brighter orange)
+#   location \w  pastel peach #ffc7a2 (the lighter orange)
+#   git branch   lilac #dfaee6
+#   python env   soft sage #afc8a6 (the main accent)
+# Truecolour where the terminal advertises it (COLORTERM), 256-colour
+# approximations of the same hues otherwise, uncoloured with neither.
+
+__prompt_hex() {
+    # '38;2;r;g;b' for an #rrggbb value, via bash's 16#... arithmetic.
+    printf '38;2;%d;%d;%d' $((16#${1:0:2})) $((16#${1:2:2})) $((16#${1:4:2}))
+}
+
+if [ "${color_prompt:-}" = yes ]; then
+    case "${COLORTERM:-}" in
+        truecolor|24bit)
+            prompt_arrow="\[\033[$(__prompt_hex b9b4a6)m\]"
+            prompt_user="\[\033[$(__prompt_hex ffaf80)m\]"
+            prompt_path="\[\033[$(__prompt_hex ffc7a2)m\]"
+            prompt_git="\[\033[$(__prompt_hex dfaee6)m\]"
+            prompt_python="\[\033[$(__prompt_hex afc8a6)m\]"
+            ;;
+        *)
+            prompt_arrow='\[\033[38;5;250m\]'   # ≈ #bcbcbc
+            prompt_user='\[\033[38;5;216m\]'    # ≈ #ffaf87
+            prompt_path='\[\033[38;5;223m\]'    # ≈ #ffd7af
+            prompt_git='\[\033[38;5;182m\]'     # ≈ #d7afd7
+            prompt_python='\[\033[38;5;151m\]'  # ≈ #afd7af
+            ;;
+    esac
+fi
+
 # Return the current Git branch and whether the working tree is clean.
 __prompt_git() {
     local branch status
@@ -86,19 +119,19 @@ __prompt_update() {
 
     if [ "${color_prompt:-}" = yes ]; then
 
-        PS1='\[\033[01;36m\]╭─\[\033[00m\] '
-        PS1+='\[\033[01;32m\]\u@\h\[\033[00m\]: '
-        PS1+='\[\033[01;34m\]\w\[\033[00m\]'
+        PS1="${prompt_arrow}╭─\[\033[00m\] "
+        PS1+="${prompt_user}\u@\h\[\033[00m\]${prompt_arrow}:\[\033[00m\] "
+        PS1+="${prompt_path}\w\[\033[00m\]"
 
         if [ -n "$git_info" ]; then
-            PS1+=" \[\033[01;33m\][$git_info]\[\033[00m\]"
+            PS1+=" ${prompt_git}[$git_info]\[\033[00m\]"
         fi
 
         if [ -n "$python_info" ]; then
-            PS1+=" \[\033[01;35m\]($python_info)\[\033[00m\]"
+            PS1+=" ${prompt_python}($python_info)\[\033[00m\]"
         fi
 
-        PS1+='\n\[\033[01;36m\]╰─»\[\033[00m\] '
+        PS1+="\n${prompt_arrow}╰─»\[\033[00m\] "
 
     else
 

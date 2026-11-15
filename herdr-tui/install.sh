@@ -3,7 +3,7 @@
 # (one of several components; the top-level install.sh runs this for you):
 #   1. check herdr is on PATH (missing = warning, not a failure)
 #   2. back up an existing ~/.config/herdr/config.toml (untouched otherwise)
-#   3. symlink it -> <repo>/herdr/config.toml
+#   3. symlink it -> <repo>/herdr-tui/config.toml
 # Only the config file is linked; herdr's runtime state in that dir
 # (logs, sockets, session.json, ...) is left completely alone.
 # Idempotent: safe to re-run.
@@ -23,7 +23,7 @@ while [ -L "$SOURCE" ]; do
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
 ROOT=$(cd -P "$(dirname "$SOURCE")/.." && pwd)
-SRC="$ROOT/herdr/config.toml"
+SRC="$ROOT/herdr-tui/config.toml"
 
 # --- sanity check / package warning ------------------------------------------
 if ! command -v herdr > /dev/null; then

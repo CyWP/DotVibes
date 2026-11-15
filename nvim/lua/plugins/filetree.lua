@@ -13,6 +13,9 @@ return {
     { "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle file explorer" },
   },
   opts = {
+    window = {
+      position = "right", -- sidebar on the right edge of the screen
+    },
     filesystem = {
       follow_current_file = { enabled = true },
       filtered_items = {

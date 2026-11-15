@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Changed:** `ctrl-b w` opens the picker as a space picker now: one row
+  per space — its color chip, name and agent status — and Enter or a
+  click goes there (it was the tab picker, grouping each space's tabs).
+  The picker mod keeps its tab mode; only what `ctrl-b w` opens changed.
+
 - **Changed:** the bright peach got brighter. The peach pair in slot 4 is
   now pastel `#ffc7a2` / bright `#ffaf80` (was `#f5a878` — the bright half
   was duller than the person's hand-picked peach `#ffaf80`, so the theme

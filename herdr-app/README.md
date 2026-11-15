@@ -110,7 +110,7 @@ All on the `ctrl-b` prefix, and only while this layout is showing
 | `shift-x` · `shift-t` | close tab · rename tab |
 | `shift-1`…`shift-9` | space 1–9 |
 | `shift-n` · `shift-w` · `shift-d` | new space · rename space · close space |
-| `w` | picker (spaces and tabs) |
+| `w` | space picker (one row per space, Enter or click goes there) |
 | `shift-g` | new worktree of this space's repo |
 | `v` · `minus` | split right · split down |
 | `x` · `z` | close pane · zoom |

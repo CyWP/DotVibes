@@ -113,7 +113,9 @@ Top to bottom:
 - **Keys** (`keys.json`, only while this layout shows; prefix `ctrl-b`):
   `c` new tab, `n` / `p` next / previous, `shift-x` close tab,
   `shift-t` rename tab; `shift-1..9` space N, `shift-n` new space,
-  `shift-w` rename space, `shift-d` close space, `w` picker, `shift-g` new
+  `shift-w` rename space, `shift-d` close space, `w` space picker (one row
+  per space: color chip, name, agent status; Enter or a click goes there),
+  `shift-g` new
   worktree; `v` split right, `-` split down, `x` close pane, `z` or `m` zoom,
   `h j k l` move between panes; `b` sidebar; `shift-/` help; `s` settings;
   `alt-g` lazygit, `alt-b` btop, `alt-f` yazi, each in a floating terminal

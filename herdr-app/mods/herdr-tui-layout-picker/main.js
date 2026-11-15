@@ -1,5 +1,8 @@
 // Modified from Herdr's shipped `picker` mod (Apache-2.0).
-// Changes: draws its own rounded box (opened with frame: "none").
+// Changes: draws its own rounded box (opened with frame: "none"); a spaces
+// mode (the side mod opens it with props {mode: "spaces"}): each row is a
+// space — color chip, name, agent status — Enter or a click goes there,
+// the new-space rows stay, ctrl+d does nothing.
 // Go to a tab. Drops from the Terminals layout's space chip (popup, at: "top"). Spaces with
 // something that needs you come first, quiet spaces (no agent running)
 // fold into "earlier". Type to filter, ↑/↓ and Enter to go, ctrl+d to close
@@ -38,10 +41,11 @@ function spaceColor(t, p) {
 
 export default class Picker extends View {
   init(_props, cx) {
+    this.spacesMode = props()?.mode === "spaces";
     this.filter = "";
-    this.input = InputState.new({ placeholder: "Go to a tab, space or agent…" });
+    this.input = InputState.new({ placeholder: this.spacesMode ? "Go to a space…" : "Go to a tab, space or agent…" });
     this.input.on("change", (_e, cx) => { this.filter = this.input.value(); this.at = 0; cx.notify(); });
-    this.input.on("submit", () => this.go(this.rows().filter(r => r.kind === "ctx" || r.kind === "new" || r.kind === "space")[this.at]));
+    this.input.on("submit", () => this.go(this.rows().filter(r => r.kind === "wsp" || r.kind === "ctx" || r.kind === "new" || r.kind === "space")[this.at]));
     this.input.focus();
     cx.timer.after(600, () => this.input.focus());
     this.at = null;
@@ -64,6 +68,14 @@ export default class Picker extends View {
 
   rows() {
     const f = this.filter.toLowerCase();
+    if (this.spacesMode) {
+      const out = spaces()
+        .filter((w) => !f || w.name.toLowerCase().includes(f))
+        .map((w) => ({ kind: "wsp", w }));
+      out.push({ kind: "space", machine: null });
+      for (const m of this.machines) out.push({ kind: "space", machine: m });
+      return out;
+    }
     const all = agents();
     const live = terminals().filter((x) => x.state === "live");
     const teamOf = (addrs) => {
@@ -103,7 +115,8 @@ export default class Picker extends View {
   go(r) {
     if (!r) return;
     this.close();
-    if (r.kind === "ctx") run("tab.select", { id: r.ctx.id });
+    if (r.kind === "wsp") run("space.select", { id: r.w.id });
+    else if (r.kind === "ctx") run("tab.select", { id: r.ctx.id });
     else if (r.kind === "new") run("tab.new");
     else if (r.kind === "space") run("space.new", { machine: r.machine ?? "" });
   }
@@ -116,15 +129,15 @@ export default class Picker extends View {
   render() {
     const t = theme();
     const rows = this.rows();
-    const pickable = rows.filter((r) => r.kind === "ctx" || r.kind === "new" || r.kind === "space");
+    const pickable = rows.filter((r) => r.kind === "wsp" || r.kind === "ctx" || r.kind === "new" || r.kind === "space");
     // Opens on where you are.
-    if (this.at === null) this.at = Math.max(0, pickable.findIndex((r) => r.kind === "ctx" && r.w.active && r.ctx.active));
+    if (this.at === null) this.at = Math.max(0, pickable.findIndex((r) => (this.spacesMode ? r.kind === "wsp" && r.w.active : r.kind === "ctx" && r.w.active && r.ctx.active)));
     this.at = Math.min(this.at, pickable.length - 1);
     const sel = pickable[this.at];
     // One continuous strip: each row (and the group title before it) at a fixed
     // y. Scrolling moves the strip only as far as it takes to keep the selected
     // row in view, so the arrows can't run the selection off the list.
-    const H = { head: 29, earlier: 35, new: 36, ctx: 32, space: 32 };
+    const H = { head: 29, earlier: 35, new: 36, ctx: 32, space: 32, wsp: 32 };
     const tops = [];
     let y = 0;
     rows.forEach((r) => { tops.push(y); y += H[r.kind] ?? 32; });
@@ -195,6 +208,25 @@ export default class Picker extends View {
           .on_click(() => this.go(r))
           .child(div().w(12).child("+"))
           .child(label);
+      }
+      if (r.kind === "wsp") {
+        return h_flex()
+          .id(`pk-w-${r.w.id}`)
+          .mx(4)
+          .px(10)
+          .h(32)
+          .rounded(7)
+          .gap(10)
+          .items_center()
+          .cursor_pointer()
+          .when(on, (el) => el.bg(t.hover))
+          .hover((s) => s.bg(t.hover))
+          .on_click(() => this.go(r))
+          .child(h_flex().size(18).rounded(5).bg(spaceColor(t, r.w)).items_center().justify_center().text_size(10.5).font_bold().text_color("#ffffff").child([...r.w.name][0]?.toUpperCase() ?? "?"))
+          .child(div().flex_1().truncate().text_color(t.foreground).when(r.w.active, (d) => d.font_semibold()).child(r.w.name))
+          .when(r.w.status === "blocked", (el) => el.child(div().text_size(11).text_color(t.blocked).child("needs you")))
+          .when(r.w.status === "done", (el) => el.child(div().text_size(11).text_color(t.done).child("finished")))
+          .child(this.glyph(t, r.w.status));
       }
       const who = r.mine.map((a) => a.program?.name ?? "agent").join(" · ");
       const here = r.w.active && r.ctx.active;

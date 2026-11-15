@@ -173,7 +173,7 @@ export default class TuiSide extends View {
         // picker, help, rename-tab and the popup programs, all on the agents
         // copy so the two copies of this mod don't both open one.
         if ((props()?.part ?? "spaces") === "agents") {
-          if (c === "picker") openOverlay({ mod: "herdr-tui-layout-picker", kind: "dialog", frame: "none", width: 640, height: 0.45 });
+          if (c === "picker") openOverlay({ mod: "herdr-tui-layout-picker", kind: "dialog", frame: "none", width: 640, height: 0.45, props: { mode: "spaces" } });
           if (c === "help") openOverlay({ mod: "herdr-tui-layout-help", kind: "dialog", frame: "none", width: 560, height: 560 });
           if (c === "rename-tab") {
             const tab = spaces().find((x) => x.active)?.tabs.find((x) => x.active);

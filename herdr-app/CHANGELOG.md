@@ -6,7 +6,8 @@
   `ctrl-b` prefix, walking the sidebar's display order (worktrees right
   after their repo instead of wherever they sit in Herdr's model order)
   and wrapping at the ends; `ctrl-b down` / `up` walk the same way.
-  `alt-h` / `alt-l` go to the previous / next tab.
+  `alt-h` / `alt-l` go to the previous / next tab, and `alt-left` /
+  `alt-right` focus the pane to the left / right.
 
 - **New:** the sidebar wears the pane-card treatment. The vertical
   separator is gone; the spaces and agents halves are two rounded cards

@@ -111,6 +111,7 @@ All on the `ctrl-b` prefix, and only while this layout is showing
 | `shift-x` · `shift-t` | close tab · rename tab |
 | `shift-1`…`shift-9` | space 1–9 |
 | `alt-h` · `alt-l` | previous tab · next tab |
+| `alt-left` · `alt-right` | focus the pane to the left · right |
 | `alt-j` · `alt-k` | next space · previous space (sidebar order, wraps) |
 | `up` · `down` | previous space · next space (same, on the prefix) |
 | `left` · `right` | back · forward through your recent spaces (wraps at the ends) |

@@ -126,10 +126,10 @@ Top to bottom:
   `shift-t` rename tab; `shift-1..9` space N, `up` / `down` previous /
   next space and `alt-j` / `alt-k` the same without the prefix — both walk
   the sidebar's order (worktrees right after their repo), wrapping at the
-  ends, and `alt-h` / `alt-l` previous / next tab,
-  `left` / `right` back / forward through your recent spaces
-  (wrapping at the ends; a new jump drops the forward ones; closed
-  spaces are skipped),
+  ends — and `alt-h` / `alt-l` previous / next tab. `left` / `right` back
+  / forward through your recent spaces (wrapping at the ends; a new jump
+  drops the forward ones; closed spaces are skipped), `alt-left` /
+  `alt-right` focus the pane to the left / right,
   `shift-n` new space, `r` or `shift-w` rename space, `shift-d` close
   space, `w` space picker (one row
   per space: name and agent status, worktrees nested under their repo's

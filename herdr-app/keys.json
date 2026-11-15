@@ -13,6 +13,8 @@
     "alt-k": "herdr-tui-layout-side.space-prev",
     "alt-h": "tab.prev",
     "alt-l": "tab.next",
+    "alt-left": "pane.go:left",
+    "alt-right": "pane.go:right",
     "ctrl-b up": "herdr-tui-layout-side.space-prev",
     "ctrl-b down": "herdr-tui-layout-side.space-next",
     "ctrl-b left": "herdr-tui-layout-side.recent-back",

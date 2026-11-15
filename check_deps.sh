@@ -120,6 +120,13 @@ _check_deps_run() {
     fi
     have xsel || bucket soft "xsel not found — tmux clipboard bindings need it; copies stay inside tmux until it's installed"
 
+    # --- opencode -----------------------------------------------------------------
+    echo
+    echo "== opencode (config: opencode/) =="
+    if have opencode; then correct "opencode"
+    else bucket hard "opencode not found — config can be installed but the TUI would be unusable"
+    fi
+
     # --- appearance ----------------------------------------------------------------
 echo
 echo "== appearance (config: appearance/) =="

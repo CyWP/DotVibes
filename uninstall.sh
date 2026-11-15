@@ -27,7 +27,7 @@ while [ -L "$SOURCE" ]; do
 done
 ROOT=$(cd -P "$(dirname "$SOURCE")" && pwd)
 
-COMPONENTS=(nvim ghostty herdr agents tmux appearance fonts bash bin slides)
+COMPONENTS=(nvim ghostty herdr agents tmux opencode appearance fonts bash bin slides)
 
 # --- helpers ---------------------------------------------------------------------
 is_ours() { # $1 = path: true iff a symlink pointing into this repo
@@ -90,6 +90,7 @@ undo_component() {
     ghostty)  undo_default "$HOME/.config/ghostty/config.ghostty" ;;
     herdr)    undo_default "$HOME/.config/herdr/config.toml" ;;
     tmux)     undo_default "$HOME/.tmux.conf" ;;
+    opencode) undo_default "$HOME/.config/opencode/cli.json" ;;
     agents)
       local d f
       for d in "$HOME/.claude/skills"; do

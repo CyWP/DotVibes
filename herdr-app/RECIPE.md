@@ -114,7 +114,8 @@ Top to bottom:
   `c` new tab, `n` / `p` next / previous, `shift-x` close tab,
   `shift-t` rename tab; `shift-1..9` space N, `up` / `down` previous /
   next space, `left` / `right` back / forward through your recent spaces
-  (a new jump drops the forward ones; closed spaces are skipped),
+  (wrapping at the ends; a new jump drops the forward ones; closed
+  spaces are skipped),
   `shift-n` new space, `r` or `shift-w` rename space, `shift-d` close
   space, `w` space picker (one row
   per space: name and agent status, worktrees nested under their repo's

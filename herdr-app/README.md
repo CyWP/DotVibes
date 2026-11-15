@@ -110,7 +110,7 @@ All on the `ctrl-b` prefix, and only while this layout is showing
 | `shift-x` · `shift-t` | close tab · rename tab |
 | `shift-1`…`shift-9` | space 1–9 |
 | `up` · `down` | previous space · next space |
-| `left` · `right` | back · forward through your recent spaces |
+| `left` · `right` | back · forward through your recent spaces (wraps at the ends) |
 | `r` · `shift-w` | rename this space |
 | `shift-n` · `shift-d` | new space · close space |
 | `w` | space picker (spaces, worktrees nested under their repo; Enter or click goes there) |

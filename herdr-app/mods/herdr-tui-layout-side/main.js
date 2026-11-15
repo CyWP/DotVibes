@@ -193,14 +193,22 @@ export default class TuiSide extends View {
         }
         if ((c === "recent-back" || c === "recent-forward") && (props()?.part ?? "spaces") === "spaces") {
           // ctrl-b left / right: walk back and forward through the spaces
-          // you've been on. Closed spaces on the way are skipped.
+          // you've been on. The walk wraps at the ends (past the oldest
+          // lands on the newest and vice versa) but never lands on the
+          // space already shown — that would be a dead press. Closed
+          // spaces on the way are skipped.
           const step = c === "recent-back" ? -1 : 1;
-          while (this.hist && this.pos + step >= 0 && this.pos + step < this.hist.length) {
-            this.pos += step;
-            if (spaces().some((x) => x.id === this.hist[this.pos])) {
-              this.moving = true;
-              run("space.select", { id: this.hist[this.pos] });
-              break;
+          const n = (this.hist ?? []).length;
+          if (n) {
+            let pos = (((this.pos ?? 0) + step) % n + n) % n;
+            for (let i = 0; i < n; i++) {
+              if (this.hist[pos] !== this.shownSpace && spaces().some((x) => x.id === this.hist[pos])) {
+                this.pos = pos;
+                this.moving = true;
+                run("space.select", { id: this.hist[pos] });
+                break;
+              }
+              pos = ((pos + step) % n + n) % n;
             }
           }
         }

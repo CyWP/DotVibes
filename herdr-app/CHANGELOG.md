@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Changed:** the recent-space walk wraps now: `ctrl-b left` past the
+  oldest space lands on the newest, and `ctrl-b right` past the newest
+  lands on the oldest.
+
 - **Changed:** splitting moved onto the shift row: `ctrl-b shift-h` /
   `shift-j` / `shift-k` / `shift-l` split left / down / up / right
   (`ctrl-b v` and `ctrl-b -` are gone). `pane.split` only makes right and

@@ -5,8 +5,8 @@
 - **Changed:** the bright peach got brighter. The peach pair in slot 4 is
   now pastel `#ffc7a2` / bright `#ffaf80` (was `#f5a878` — the bright half
   was duller than the person's hand-picked peach `#ffaf80`, so the theme
-  now carries that exact hex). `nvim/colors/herdr.lua`'s `d_peach` and the
-  DotVibes prompt's user@host still pin `#f5a878`.
+  now carries that exact hex). The DotVibes prompt's user@host and
+  `nvim/colors/herdr.lua`'s `d_peach` follow.
 
 - **New:** the wallpaper shows through the terminals. The layout's
   background is `backgrounds/herdr-tui-layout-bg.jpg` — DotVibes'

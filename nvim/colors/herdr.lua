@@ -12,7 +12,7 @@ local hi = vim.api.nvim_set_hl
 local fg      = "#e7e2d6"
 local white   = "#ffffff"
 local dim     = "#a59b84"  -- beige: comments, secondary text
-local faint   = "#8e897a"
+local faint   = "#a49e91"  -- a bit closer to white than before
 local red     = "#c77b88"
 local d_red   = "#cd6578"
 local yellow  = "#dcc37a"
@@ -21,13 +21,11 @@ local mint    = "#6dc1a6"
 local d_mint  = "#32b28a"
 local peach   = "#ffc7a2"
 local d_peach = "#ffaf80"
-local light_peach = "#ffc7a2"  -- lighter peach: math symbols
 local lilac   = "#dfaee6"
 local blue    = "#91b4db"
 local d_blue  = "#507dbc"
 local pale_teal = "#a9d0c4"
 local pale_pink = "#d0aca4"
-local pink   = "#ffb0d0"  -- light pastel pink: module names
 local sage    = "#afc8a6"
 local dark    = "#332e27"
 local select  = "#3e3a31"
@@ -85,77 +83,89 @@ hi(0, "MatchParen",   { fg = white, bg = select, bold = true })
 hi(0, "WildMenu",     { fg = dark, bg = sage })
 
 -- syntax
-hi(0, "Comment",        { fg = dim, italic = true })
-hi(0, "Constant",       { fg = sage })
+-- syntax — a 1:1 mapping of kanagawa-dragon's colours onto this palette,
+-- same distribution, each colour a touch lighter than its dragon original:
+-- dragonAsh→faint, dragonGreen2→sage, dragonPink→pale_pink,
+-- dragonOrange→d_peach, dragonYellow→yellow, dragonGray/Gray2→dim,
+-- dragonBlue2→blue, dragonViolet→lilac, dragonRed→d_red, dragonAqua→pale_teal,
+-- dragonTeal→mint.
+hi(0, "Comment",        { fg = faint, italic = true })
+hi(0, "Constant",       { fg = d_peach })
 hi(0, "String",         { fg = sage })
 hi(0, "Character",      { fg = sage })
-hi(0, "Number", { fg = sage })  -- numeric literals read like strings
-hi(0, "Float", { fg = sage })
-hi(0, "Boolean",        { fg = lilac })
-hi(0, "Identifier",     { fg = fg })
-hi(0, "Function",       { fg = yellow })
-hi(0, "Statement",      { fg = pale_teal })
-hi(0, "Keyword",        { fg = pale_teal })
-hi(0, "Conditional",    { fg = pale_teal })
-hi(0, "Repeat",         { fg = pale_teal })
-hi(0, "Label",          { fg = pale_teal })
-hi(0, "Operator",       { fg = d_mint })
-hi(0, "Exception",      { fg = red })
-hi(0, "PreProc",        { fg = d_peach })
-hi(0, "Include",        { fg = d_peach })
-hi(0, "Define",         { fg = d_peach })
-hi(0, "Macro",          { fg = d_peach })
-hi(0, "Type",           { fg = d_peach })
-hi(0, "StorageClass",   { fg = d_peach })
-hi(0, "Structure",      { fg = d_peach })
-hi(0, "Typedef",        { fg = d_peach })
-hi(0, "Special",        { fg = red })
-hi(0, "SpecialChar",    { fg = red })
-hi(0, "Tag",            { fg = yellow })
+hi(0, "Number", { fg = fg })  -- numeric literals read as plain text
+hi(0, "Float", { fg = fg })
+hi(0, "Boolean",        { fg = fg })
+hi(0, "Identifier",     { fg = yellow })
+hi(0, "Function",       { fg = pale_pink })
+hi(0, "Statement",      { fg = lilac })
+hi(0, "Keyword",        { fg = lilac })
+hi(0, "Conditional",    { fg = lilac })
+hi(0, "Repeat",         { fg = lilac })
+hi(0, "Label",          { fg = lilac })
+hi(0, "Operator",       { fg = peach })
+hi(0, "Exception",      { fg = peach })
+hi(0, "PreProc",        { fg = peach })
+hi(0, "Include",        { fg = peach })
+hi(0, "Define",         { fg = peach })
+hi(0, "Macro",          { fg = peach })
+hi(0, "Type",           { fg = pale_teal })
+hi(0, "StorageClass",   { fg = pale_teal })
+hi(0, "Structure",      { fg = pale_teal })
+hi(0, "Typedef",        { fg = pale_teal })
+hi(0, "Special",        { fg = mint })
+hi(0, "SpecialChar",    { fg = mint })
+hi(0, "Tag",            { fg = mint })
 hi(0, "Delimiter",      { fg = dim })
-hi(0, "SpecialComment", { fg = dim })
-hi(0, "Debug",          { fg = red })
-hi(0, "Underlined",     { fg = d_blue, underline = true })
+hi(0, "SpecialComment", { fg = mint })
+hi(0, "Debug",          { fg = mint })
+hi(0, "Underlined",     { fg = mint, underline = true })
 hi(0, "Ignore",         { fg = faint })
-hi(0, "Error",          { fg = d_red, bold = true })
+hi(0, "Error",          { fg = d_red })
 hi(0, "Todo",           { fg = dark, bg = sage, bold = true })
 
--- treesitter captures the built-in links don't cover
+-- treesitter captures — kanagawa's mapping (unset ones fall through)
 hi(0, "@variable",          { fg = fg })
-hi(0, "@variable.builtin",  { fg = sage })
-hi(0, "@constant.builtin",  { fg = d_peach })
-hi(0, "@function.builtin",  { fg = yellow })
-hi(0, "@type",              { fg = d_peach })
-hi(0, "@type.builtin",      { fg = d_peach })
-hi(0, "@type.definition",   { fg = d_peach })
-hi(0, "@module",            { fg = pink })   -- module names, imports
-hi(0, "@module.builtin",    { fg = pink })
-hi(0, "@property",          { fg = fg })
-hi(0, "@parameter",         { fg = fg })
+hi(0, "@variable.builtin",  { fg = peach, italic = true })  -- self/this
+hi(0, "@variable.parameter",{ fg = dim })
+hi(0, "@variable.member",   { fg = fg })  -- instance attributes read as plain text
+hi(0, "@parameter",         { fg = dim })
 hi(0, "@field",             { fg = fg })
-hi(0, "@operator",          { fg = d_mint })
-hi(0, "@operator.assign",   { fg = blue })   -- equal signs, per the python query
-hi(0, "@operator.math",     { fg = light_peach })  -- + - * /, lighter peach
+hi(0, "@property",          { fg = fg })
+hi(0, "@constant.builtin",  { fg = d_peach })
+hi(0, "@attribute",         { fg = d_peach })
+hi(0, "@function.builtin",  { fg = pale_pink })
+hi(0, "@string.regexp",     { fg = peach })
+hi(0, "@string.escape",     { fg = peach, bold = true })
+hi(0, "@string.special.symbol", { fg = yellow })
+hi(0, "@string.documentation",  { fg = faint, italic = true })  -- docstrings read as comments
+hi(0, "@string.special.url",    { fg = mint, underline = true })
+hi(0, "@type",              { fg = pale_teal })
+hi(0, "@type.builtin",      { fg = pale_teal })
+hi(0, "@type.definition",   { fg = pale_teal })
+hi(0, "@module",            { fg = pale_teal })  -- dragon leaves modules to Structure/Type
+hi(0, "@module.builtin",    { fg = pale_teal })
+hi(0, "@constructor",       { fg = mint })
+hi(0, "@operator",          { fg = d_red })
 hi(0, "@punctuation",       { fg = dim })
--- docstrings read like comments (strings themselves stay sage)
-hi(0, "@string.documentation", { fg = dim, italic = true })
 
--- nested brackets (rainbow-delimiters): outermost level sage (the numeric
--- literal colour), then cycling yellow → mint → blue → lilac → red deeper in
-hi(0, "RainbowSage",   { fg = sage })
+-- nested brackets (rainbow-delimiters): outermost level blue, then cycling
+-- yellow → mint → rose → lilac → peach deeper in (no red in the cycle)
+hi(0, "RainbowBlue",   { fg = blue })
 hi(0, "RainbowYellow", { fg = yellow })
 hi(0, "RainbowMint",   { fg = mint })
-hi(0, "RainbowBlue",   { fg = blue })
+hi(0, "RainbowRose",   { fg = pale_pink })
 hi(0, "RainbowLilac",  { fg = lilac })
-hi(0, "RainbowRed",    { fg = red })
+hi(0, "RainbowPeach",  { fg = d_peach })
 
--- diff: green/red washes behind the lines, the text colour itself unchanged
--- (no fg on the Diff groups). gitsigns links its gutter marks to these, so
--- GitSigns* get explicit colours here to keep them green/red in the gutter.
-hi(0, "DiffAdd",    { bg = "#2e4034" })  -- dark mint wash
-hi(0, "DiffChange", { bg = "#413625" })  -- dark amber wash
-hi(0, "DiffText",   { bg = "#3d5a4f" })  -- the changed words, stronger green
-hi(0, "DiffDelete", { bg = "#402e31" })  -- dark red wash
+-- diff washes behind the lines, the text colour itself unchanged (no fg on
+-- the Diff groups) — dragon's winter washes, a touch lighter: add green,
+-- delete red, change blue-grey, text amber. gitsigns links its gutter marks
+-- to these, so GitSigns* carry their own colours.
+hi(0, "DiffAdd",    { bg = "#2e4034" })  -- dark mint wash (winterGreen)
+hi(0, "DiffChange", { bg = "#2c3140" })  -- dark blue-grey wash (winterBlue)
+hi(0, "DiffText",   { bg = "#4a4437" })  -- dark amber wash (winterYellow)
+hi(0, "DiffDelete", { bg = "#402e31" })  -- dark red wash (winterRed)
 hi(0, "GitSignsAdd",    { fg = d_mint })
 hi(0, "GitSignsChange", { fg = d_yellow })
 hi(0, "GitSignsDelete", { fg = d_red })
@@ -164,6 +174,6 @@ hi(0, "GitSignsDelete", { fg = d_red })
 -- underline/virtual-text/sign shapes uniformly)
 hi(0, "DiagnosticError", { fg = d_red })
 hi(0, "DiagnosticWarn",  { fg = d_yellow })
-hi(0, "DiagnosticInfo",  { fg = d_mint })
+hi(0, "DiagnosticInfo",  { fg = pale_pink })
 hi(0, "DiagnosticHint",  { fg = mint })
 hi(0, "DiagnosticOk",    { fg = d_mint })

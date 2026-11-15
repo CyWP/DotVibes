@@ -1,24 +1,62 @@
--- Colorscheme: herdr (colors/herdr.lua — the person's own palette), plus
--- rainbow-delimiters so nested brackets cycle the theme's palette.
+-- Colourscheme: gruvbox (ellisonleao/gruvbox.nvim — the warm classic),
+-- plus rainbow-delimiters for nested brackets.
 --
--- The theme defines the Rainbow* groups; this only hands the names to
--- rainbow-delimiters, in nesting order. Strategy and query are the
--- plugin's defaults (global strategy, the rainbow-delimiters query).
+-- transparent_mode keeps the terminal's background (incl. its opacity)
+-- visible. The Rainbow* groups ride in through gruvbox's overrides, in its
+-- bright palette (no red, no yellow in the cycle). Order = nesting depth,
+-- cycling.
 return {
-  "HiPhish/rainbow-delimiters.nvim",
-  lazy = false,
-  priority = 1000,
-  config = function()
-    require("rainbow-delimiters.setup").setup({
-      highlight = {
-        "RainbowSage",
-        "RainbowYellow",
-        "RainbowMint",
-        "RainbowBlue",
-        "RainbowLilac",
-        "RainbowRed",
+  {
+    "HiPhish/rainbow-delimiters.nvim",
+    lazy = false,
+    priority = 1000,
+    config = function()
+      require("rainbow-delimiters.setup").setup({
+        highlight = {
+          "RainbowFg",
+          "RainbowGreen",
+          "RainbowAqua",
+          "RainbowBlue",
+          "RainbowPurple",
+        },
+      })
+    end,
+  },
+  {
+    "ellisonleao/gruvbox.nvim",
+    lazy = false,
+    priority = 1001,
+    opts = {
+      transparent_mode = true,
+      palette_overrides = {
+        -- the yellow (types, line numbers), a touch lighter than stock
+        bright_yellow = "#ffca5f",
+        -- the blue (identifiers, attribute names, signs), a touch lighter
+        bright_blue = "#a2bbb2",
+        -- the green (strings, functions, signs), a touch pastel
+        bright_green = "#cdcf67",
+        -- the purple (constants, numbers, booleans): lilac, not rose
+        bright_purple = "#dfaee6",
+        -- the orange (operators, special): our peach, not stock orange
+        bright_orange = "#ffaf80",
+        -- the red: pinkish (crimson), not orange-red
+        bright_red = "#ff4d7f",
       },
-    })
-    vim.cmd.colorscheme("herdr")
-  end,
+      overrides = {
+        -- docstrings read as comments (python and the generic capture)
+        ["@string.documentation"] = { link = "Comment" },
+        ["@string.documentation.python"] = { link = "Comment" },
+        RainbowFg     = { fg = "#ebdbb2" }, -- the regular-text colour
+        RainbowGreen  = { fg = "#b8bb26" },
+        RainbowAqua   = { fg = "#8ec07c" },
+        RainbowBlue   = { fg = "#83a598" },
+        RainbowPurple = { fg = "#dfaee6" },
+      },
+    },
+    config = function(_, opts)
+      vim.o.background = "dark"
+      require("gruvbox").setup(opts)
+      vim.cmd.colorscheme("gruvbox")
+    end,
+  },
 }

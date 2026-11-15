@@ -19,3 +19,26 @@ vim.api.nvim_create_autocmd("ColorScheme", {
   end,
   desc = "Uniform light-grey diagnostics across severities: underline, virtual text and gutter signs",
 })
+
+-- Every underline is drawn in the same grey, whatever colour the text above
+-- it is: the sweep walks all defined highlight groups and gives the ones
+-- with underline/undercurl a grey special (sp) colour, leaving groups that
+-- already set one (the diagnostic underlines above) untouched. Runs on
+-- every colourscheme and again once late, so plugin groups (treesitter
+-- captures, telescope, …) registered after start are caught too.
+vim.api.nvim_create_autocmd("ColorScheme", {
+  group = vim.api.nvim_create_augroup("grey-all-underlines", { clear = true }),
+  pattern = "*",
+  callback = function()
+    local function sweep()
+      for name, def in pairs(vim.api.nvim_get_hl(0, {})) do
+        if type(def) == "table" and not def.link and (def.underline or def.undercurl) and not def.sp then
+          vim.api.nvim_set_hl(0, name, vim.tbl_extend("force", def, { sp = DIAGNOSTIC_GREY }))
+        end
+      end
+    end
+    sweep()
+    vim.defer_fn(sweep, 800)
+  end,
+  desc = "All underlines and undercurls drawn in the same grey, not the text colour",
+})

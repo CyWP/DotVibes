@@ -1,0 +1,220 @@
+#!/bin/bash
+# wtclean — find linked git worktrees and prompt for removal, one by one.
+#
+# No batch modes, no flags: every worktree gets its own prompt, every
+# deletion its own confirmation.
+#
+# Discovery (union, deduplicated):
+#   1. dirs whose .git is a FILE (linked checkouts) under the scan roots
+#      (~/Repos and ~/.herdr/worktrees — herdr puts its worktrees there),
+#   2. `git worktree list` of every main repo found under ~/Repos
+#      (catches worktrees parked anywhere else, and prunable ones).
+#
+# For each worktree it shows branch, dirty state, unpushed commits, last
+# commit age and disk usage, then asks. y = remove, n/Enter = skip,
+# q = quit. Removing a DIRTY worktree requires an extra explicit force
+# confirmation. After removal it offers to delete the branch too (safe
+# `git branch -d`; refuses if unmerged).
+
+set -u
+
+SCAN_ROOTS=("$HOME/Repos" "$HOME/.herdr/worktrees")
+MAXDEPTH=6
+
+green()  { printf '\033[32m%s\033[0m' "$1"; }
+red()    { printf '\033[31m%s\033[0m' "$1"; }
+yellow() { printf '\033[33m%s\033[0m' "$1"; }
+dim()    { printf '\033[2m%s\033[0m' "$1"; }
+bold()   { printf '\033[1m%s\033[0m' "$1"; }
+
+errfile=$(mktemp /tmp/wtclean.XXXXXX)
+trap 'rm -f "$errfile"' EXIT
+
+# --- 1. collect candidate worktree paths -----------------------------------------
+
+declare -A seen=()
+candidates=()
+prunable=()   # registered worktrees whose directory is gone
+main_repos=()
+
+add_candidate() {
+  local p
+  p=$(cd "$1" 2>/dev/null && pwd) || return 0
+  [ -n "${seen[$p]:-}" ] && return 0
+  seen[$p]=1
+  candidates+=("$p")
+}
+
+for root in "${SCAN_ROOTS[@]}"; do
+  [ -d "$root" ] || continue
+  # dirs whose .git is a file = linked checkouts; prune main repos (.git is a
+  # dir there) and build/junk dirs so find doesn't rewalk every repo
+  while IFS= read -r gitfile; do
+    add_candidate "$(dirname "$gitfile")"
+  done < <(find "$root" -maxdepth "$MAXDEPTH" -type d \
+              \( -name node_modules -o -name .venv -o -name .tox -o -name target \
+                 -o -exec test -d '{}/.git' ';' \) -prune \
+            -o -type f -name .git -print 2>/dev/null)
+  # every main repo under the roots, for the registered-worktree pass
+  while IFS= read -r gitdir; do
+    main_repos+=("$(dirname "$gitdir")")
+  done < <(find "$root" -maxdepth 4 -type d -name .git 2>/dev/null)
+done
+
+# worktrees registered with those repos, wherever they live
+for repo in "${main_repos[@]:-}"; do
+  [ -n "$repo" ] || continue
+  wt=""
+  while IFS= read -r line; do
+    if [[ "$line" == worktree\ * ]]; then wt="${line#worktree }"; continue; fi
+    [ -n "$wt" ] || continue
+    if [ "$wt" != "$repo" ]; then     # skip the main checkout itself
+      if [ -d "$wt" ]; then
+        add_candidate "$wt"
+      else
+        dup=0
+        for q in "${prunable[@]:-}"; do [ "$q" = "$wt" ] && dup=1; done
+        [ "$dup" -eq 0 ] && prunable+=("$wt")
+      fi
+    fi
+    wt=""
+  done < <(git -C "$repo" worktree list --porcelain 2>/dev/null)
+done
+
+# --- 2. keep only true linked worktrees (skip main checkouts) ----------------------
+
+worktrees=()
+for p in "${candidates[@]:-}"; do
+  [ -n "$p" ] || continue
+  gitdir=$(git -C "$p" rev-parse --absolute-git-dir 2>/dev/null) || continue
+  case "$gitdir" in
+    */.git/worktrees/*) worktrees+=("$p") ;;
+  esac
+done
+
+# --- 3. nothing to do? -------------------------------------------------------------
+
+if [ "${#worktrees[@]}" -eq 0 ] && [ "${#prunable[@]}" -eq 0 ]; then
+  echo "$(green '✓') no linked worktrees found under ${SCAN_ROOTS[*]}"
+  exit 0
+fi
+
+# --- 4. prunable entries (registered but directory gone) ---------------------------
+
+if [ "${#prunable[@]}" -ge 1 ]; then
+  echo "$(yellow '!') registered worktrees whose directory is gone:"
+  for p in "${prunable[@]}"; do
+    echo "    $p"
+  done
+  read -rp "  prune these? [y/N] " ans
+  if [[ "$ans" =~ ^[Yy] ]]; then
+    for repo in "${main_repos[@]}"; do
+      git -C "$repo" worktree prune 2>/dev/null
+    done
+    echo "  $(green '✓ pruned')"
+  fi
+  echo
+fi
+
+# --- 5. the one-by-one prompt loop ---------------------------------------------------
+
+now=$(date +%s)
+removed=0
+kept=0
+
+printf '%s\n' "$(bold "found ${#worktrees[@]} worktree(s)")"
+echo
+
+i=0
+for wt in "${worktrees[@]}"; do
+  i=$((i + 1))
+
+  common=$(git -C "$wt" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || continue
+  mainrepo=${common%/.git}
+  repo=$(basename "$mainrepo")
+  bname=$(git -C "$wt" branch --show-current 2>/dev/null)
+  if [ -n "$bname" ]; then
+    branch="$bname"
+  else
+    branch="detached @ $(git -C "$wt" rev-parse --short HEAD 2>/dev/null)"
+    bname=""
+  fi
+
+  ndirty=$(git -C "$wt" status --porcelain 2>/dev/null | wc -l)
+
+  ahead=$(git -C "$wt" rev-list --count '@{upstream}..HEAD' 2>/dev/null)
+  case "$ahead" in
+    "") aheadtxt="no upstream" ;;
+    0)  aheadtxt="nothing unpushed" ;;
+    *)  aheadtxt="$ahead unpushed commit(s)" ;;
+  esac
+
+  epoch=$(git -C "$wt" log -1 --format=%ct 2>/dev/null)
+  if [ -n "$epoch" ]; then
+    age=$(( (now - epoch) / 86400 ))
+    agetxt="${age}d ago"
+    [ "$age" -lt 1 ] && agetxt="today"
+  else
+    agetxt="no commits"
+  fi
+
+  size=$(timeout 10 du -sh "$wt" 2>/dev/null | cut -f1)
+  [ -n "$size" ] || size="?"
+
+  case "$wt" in
+    "$HOME/.herdr/worktrees"/*) origin=" (herdr)" ;;
+    *)                          origin="" ;;
+  esac
+
+  dirtytxt=$( [ "$ndirty" -eq 0 ] && echo clean || echo "$ndirty uncommitted change(s)" )
+  echo "$(bold "[$i/${#worktrees[@]}]") $repo — $branch$origin"
+  echo "  $wt"
+  echo "  $(dim "last commit $agetxt · $dirtytxt · $aheadtxt · $size")"
+
+  read -rp "  remove? [y/N/(q)uit] " ans
+  case "$ans" in
+    q|Q)
+      echo "stopped — nothing else touched"
+      break
+      ;;
+    y|Y)
+      force=""
+      if [ "$ndirty" -gt 0 ]; then
+        read -rp "  $(yellow "has $ndirty uncommitted change(s) — force remove anyway?") [y/N] " fans
+        if [[ "$fans" =~ ^[Yy] ]]; then
+          force="--force"
+        else
+          echo "  skipped"
+          kept=$((kept + 1))
+          echo
+          continue
+        fi
+      fi
+      if git -C "$mainrepo" worktree remove $force "$wt" 2>"$errfile"; then
+        echo "  $(green '✓ removed')"
+        removed=$((removed + 1))
+        if [ -n "$bname" ]; then
+          read -rp "  also delete branch '$bname'? [y/N] " bans
+          if [[ "$bans" =~ ^[Yy] ]]; then
+            if git -C "$mainrepo" branch -d "$bname" >/dev/null 2>&1; then
+              echo "  $(green "✓ branch '$bname' deleted")"
+            else
+              echo "  $(yellow "branch '$bname' kept (not fully merged — use git branch -D if you mean it)")"
+            fi
+          fi
+        fi
+      else
+        echo "  $(red 'failed:') $(head -1 "$errfile")"
+        kept=$((kept + 1))
+      fi
+      ;;
+    *)
+      echo "  skipped"
+      kept=$((kept + 1))
+      ;;
+  esac
+  echo
+done
+
+echo
+echo "$(green "done:") $removed removed, $kept kept"

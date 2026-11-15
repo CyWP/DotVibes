@@ -9,3 +9,7 @@
 
 ## install.sh conventions
 - Every `install.sh` (top-level and each component) is source-safe: the body runs inside `_dv_install() { ( ... ) }` (a subshell) and a dispatcher at the bottom does `exit` when executed, `return` when sourced. The user is known to dot-source these; any new script must follow the same pattern (and check_deps.sh does). Don't add top-level `exit` outside the subshell body.
+
+## Corrections & preferences
+- **Scope discipline / destructive features:** Don't add batch/yes-to-all/remove-all modes the user didn't ask for to interactive scripts. _Why:_ added an unrequested remove-all to `bin/wtclean`, then testing it with piped answers really deleted 9 worktrees (uncommitted changes lost). Build exactly what was specified: one prompt per item, one confirmation per deletion. (2026-11-15)
+- **Testing destructive scripts:** Never exercise the destructive paths of a cleanup/delete script against real data. Test discovery and prompts only with `q` (quit-first) or `n` (skip-everything) answers, or on throwaway fixtures. (2026-11-15)

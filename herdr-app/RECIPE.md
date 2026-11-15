@@ -130,9 +130,10 @@ Top to bottom:
   `sidebar` (column, 280px,
   40–480) holding `side-spaces` and `side-agents` (blocks, weight 1, min 80,
   both `window_drag`; both `herdr-tui-layout-side` with `props.part`
-  `"spaces"` / `"agents"`), and `work` (column, padding `[3, 6]`, gap 3)
-  holding `tabsbar` (block, 6px, `window_drag`, `herdr-tui-layout-tabs`)
-  and `main` (block, no padding, `{ tab: "active" }` with pane frames: gap
+   `"spaces"` / `"agents"`), and `work` (column, resizable false so the
+   hairline can't be stretched, padding `[3, 6]`, gap 3) holding
+   `tabsbar` (block, 2px, `window_drag`, `herdr-tui-layout-tabs`) and
+  `main` (block, no padding, `{ tab: "active" }` with pane frames: gap
   6, radius 6, no fill (the background paint shows through), border
   `border`, focus `accent`, `lone: true`, no header).
 - **herdr-tui-layout-side:** `spaces()`, `agents()`, `machines()`, `panes()`,

@@ -33,7 +33,8 @@
   rest `border`, a hovered one lightens, and nothing shows when the space
   has no tabs. Clicking a segment selects its tab; the bar also drags the
   window (the layout draws no title bar) and a double-click on it
-  maximizes. There is no `+` any more: new tabs come from `ctrl-b c` or the
+  maximizes. The hairline can't be stretched by dragging (the panes
+  column is resizable false). There is no `+` any more: new tabs come from `ctrl-b c` or the
   picker (`ctrl-b w`), so the `herdr-tui-layout-new-menu` mod is gone. The
   26px top line is gone too — panes get the whole height. The status the
   top line carried (the focused agent's model and context, the Claude

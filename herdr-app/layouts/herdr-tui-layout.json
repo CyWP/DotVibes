@@ -68,6 +68,7 @@
     {
       "id": "work",
       "type": "column",
+      "resizable": false,
       "padding": [
         3,
         6

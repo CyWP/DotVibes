@@ -38,6 +38,11 @@ return {
     dependencies = {
       "nvim-tree/nvim-web-devicons", -- file type icons in the diff panel
     },
+    opts = {
+      -- the file list docks on the right edge, like neo-tree (top level:
+      -- the panel reads config.file_panel, not view.file_panel)
+      file_panel = { win_config = { position = "right" } },
+    },
     keys = {
       { "<leader>gv", "<cmd>DiffviewOpen<cr>", desc = "Diff: open" },
       { "<leader>gc", "<cmd>DiffviewClose<cr>", desc = "Diff: close" },

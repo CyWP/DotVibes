@@ -21,11 +21,13 @@ local mint    = "#6dc1a6"
 local d_mint  = "#32b28a"
 local peach   = "#ffc7a2"
 local d_peach = "#ffaf80"
+local light_peach = "#ffc7a2"  -- lighter peach: math symbols
 local lilac   = "#dfaee6"
 local blue    = "#91b4db"
 local d_blue  = "#507dbc"
 local pale_teal = "#a9d0c4"
 local pale_pink = "#d0aca4"
+local pink   = "#ffb0d0"  -- light pastel pink: module names
 local sage    = "#afc8a6"
 local dark    = "#332e27"
 local select  = "#3e3a31"
@@ -87,9 +89,9 @@ hi(0, "Comment",        { fg = dim, italic = true })
 hi(0, "Constant",       { fg = sage })
 hi(0, "String",         { fg = sage })
 hi(0, "Character",      { fg = sage })
-hi(0, "Number", { fg = pale_pink })
+hi(0, "Number", { fg = sage })  -- numeric literals read like strings
+hi(0, "Float", { fg = sage })
 hi(0, "Boolean",        { fg = lilac })
-hi(0, "Float", { fg = pale_pink })
 hi(0, "Identifier",     { fg = fg })
 hi(0, "Function",       { fg = yellow })
 hi(0, "Statement",      { fg = pale_teal })
@@ -123,19 +125,40 @@ hi(0, "@variable",          { fg = fg })
 hi(0, "@variable.builtin",  { fg = sage })
 hi(0, "@constant.builtin",  { fg = d_peach })
 hi(0, "@function.builtin",  { fg = yellow })
+hi(0, "@type",              { fg = d_peach })
+hi(0, "@type.builtin",      { fg = d_peach })
+hi(0, "@type.definition",   { fg = d_peach })
+hi(0, "@module",            { fg = pink })   -- module names, imports
+hi(0, "@module.builtin",    { fg = pink })
 hi(0, "@property",          { fg = fg })
 hi(0, "@parameter",         { fg = fg })
 hi(0, "@field",             { fg = fg })
 hi(0, "@operator",          { fg = d_mint })
 hi(0, "@operator.assign",   { fg = blue })   -- equal signs, per the python query
-hi(0, "@operator.math",     { fg = blue })   -- the other arithmetic symbols, per the python query
+hi(0, "@operator.math",     { fg = light_peach })  -- + - * /, lighter peach
 hi(0, "@punctuation",       { fg = dim })
+-- docstrings read like comments (strings themselves stay sage)
+hi(0, "@string.documentation", { fg = dim, italic = true })
 
--- diff
-hi(0, "DiffAdd",    { fg = d_mint })
-hi(0, "DiffChange", { fg = d_yellow })
-hi(0, "DiffDelete", { fg = d_red })
-hi(0, "DiffText",   { fg = fg, bold = true })
+-- nested brackets (rainbow-delimiters): outermost level sage (the numeric
+-- literal colour), then cycling yellow → mint → blue → lilac → red deeper in
+hi(0, "RainbowSage",   { fg = sage })
+hi(0, "RainbowYellow", { fg = yellow })
+hi(0, "RainbowMint",   { fg = mint })
+hi(0, "RainbowBlue",   { fg = blue })
+hi(0, "RainbowLilac",  { fg = lilac })
+hi(0, "RainbowRed",    { fg = red })
+
+-- diff: green/red washes behind the lines, the text colour itself unchanged
+-- (no fg on the Diff groups). gitsigns links its gutter marks to these, so
+-- GitSigns* get explicit colours here to keep them green/red in the gutter.
+hi(0, "DiffAdd",    { bg = "#2e4034" })  -- dark mint wash
+hi(0, "DiffChange", { bg = "#413625" })  -- dark amber wash
+hi(0, "DiffText",   { bg = "#3d5a4f" })  -- the changed words, stronger green
+hi(0, "DiffDelete", { bg = "#402e31" })  -- dark red wash
+hi(0, "GitSignsAdd",    { fg = d_mint })
+hi(0, "GitSignsChange", { fg = d_yellow })
+hi(0, "GitSignsDelete", { fg = d_red })
 
 -- diagnostics (base colours; lua/config/highlights.lua restyles the
 -- underline/virtual-text/sign shapes uniformly)

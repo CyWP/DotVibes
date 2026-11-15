@@ -230,7 +230,7 @@ export default class TuiSide extends View {
         }
         if (c === "new-worktree" && (props()?.part ?? "spaces") === "spaces") {
           const s = spaces().find((x) => x.active);
-          if (s) openOverlay({ mod: "herdr-tui-layout-worktree", kind: "dialog", frame: "none", width: 440, height: 260, props: { space: s.id, action: "new" } });
+          if (s) openOverlay({ mod: "herdr-tui-layout-worktree", kind: "dialog", frame: "none", width: 440, height: 600, props: { space: s.id, action: "new" } });
         }
         // The old bar's keys, here now (keys.json points at this mod): the
         // picker, help, rename-tab and the popup programs, all on the agents

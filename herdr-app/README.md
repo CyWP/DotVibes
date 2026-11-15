@@ -50,6 +50,13 @@ Herdr.
   every surface mutes it itself: the sidebar cards and the terminals with
   the terminal surface at ~78%, the sidebar now floating as two rounded
   cards with a 1px border instead of a vertical separator.
+- **A worktree dialog that sets you up.** New worktree asks the git branch
+  and the base branch — suggestions from the repo's local and remote
+  branches while you type (↑↓ move, tab picks), a remote base is fetched
+  first, the branch name is validated and an already-checked-out branch or
+  an existing folder is caught — and a startup script, picked from saved
+  scripts or typed on the spot, that runs as the new space's first
+  terminal (ported from the herdrtw layout).
 - **Rounded popups that fit.** Right-click menus, rename, the worktree
   dialog, the picker and help draw their own rounded boxes, so their corners
   don't show the notch Herdr's stock dialogs have.
@@ -184,11 +191,13 @@ herdr-app doesn't let layouts make terminal text clickable.
 The guide asks layouts to say this up front. herdr-tui-layout:
 
 - runs `hostname -s` and `hc machine ls --json` (to name and check machines),
-  `git rev-parse` in each space's folder every 15s (to nest worktrees) and `git` in the worktree dialog, `sh`, `ls` and `stat` over
+  `git rev-parse` in each space's folder every 15s (to nest worktrees) and `git` in the worktree dialog — creating a worktree also validates the branch, probes the checkout for a package manifest, and runs `git fetch` when the base branch names a remote — then `sh -c` (the startup script, as the new space's first terminal), `sh`, `ls` and `stat` over
   `~/.local/state/herdr-tui-layout/claude/` (the usage numbers), and
   lazygit, btop or yazi when you press their keys;
-- reads only that usage folder outside its own;
-- makes no network requests.
+- reads only that usage folder and its own `mods/herdr-tui-layout-worktree/scripts.json`
+  (saved startup scripts) outside its own folder;
+- makes no HTTP requests; `git fetch` in the worktree dialog talks to the
+  repo's remote, only when the base branch names one.
 
 ## Troubleshooting
 

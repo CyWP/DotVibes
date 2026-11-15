@@ -1,11 +1,14 @@
 // Modified from Herdr's shipped `worktree` mod (Apache-2.0).
-// Changes: draws its own rounded box (opened with frame: "none").
+// Changes: draws its own rounded box (opened with frame: "none"); the new
+// worktree dialog gained a base branch (with suggestions, fetch and
+// validation) and a startup script picker (scripts.json + custom commands),
+// ported from the herdrtw layout's worktree.js (Apache-2.0, see NOTICE).
 // Worktree dialog: { space, action: "new" | "open" | "remove" } or
-// { folder, machine } for a repo without a space; optional { branch, tab, argv }.
+// { folder, machine } for a repo without a space; optional { branch, tab, argv, base }.
 
-import { View, div } from "gpui-kit";
+import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input, Scrollbar } from "gpui-base";
-import { run, props, closeOverlay, theme, spaces, panes, exec, home } from "herdr";
+import { run, props, closeOverlay, theme, spaces, panes, exec, home, appHome, readTextFile, writeTextFile } from "herdr";
 
 // Where a space is now: its first terminal's live folder, else where it was made.
 function place(s) {
@@ -55,8 +58,8 @@ function spaceOf(path, all, on) {
   })());
 }
 
-async function git(cwd, args, on) {
-  const r = await exec("git", args, { cwd, on });
+async function git(cwd, args, on, timeout) {
+  const r = await exec("git", args, { cwd, on, ...(timeout === undefined ? {} : { timeout }) });
   return { ok: r.code === 0, out: (r.stdout ?? "").trim(), err: (r.stderr ?? r.stdout ?? "").trim() };
 }
 
@@ -106,6 +109,8 @@ async function repoOf(folder, on) {
   return { top: top.out, main, name: main.split("/").pop(), linked: main !== top.out };
 }
 
+const label = (t, title, hint) => h_flex().gap(6).items_baseline().child(div().text_size(12).font_medium().text_color(t.foreground).child(title)).child(div().text_size(11).text_color(t.dim).child(hint));
+
 export default class Worktree extends View {
   init(_props, cx) {
     this.on = this.space()?.machine;
@@ -124,6 +129,46 @@ export default class Worktree extends View {
       this.input.focus();
       cx.timer.after(600, () => this.input.focus());
     }
+    // The branch the new one starts from: typed, or picked from a suggestion
+    // list of the repo's local and remote branches while the field is focused.
+    this.baseText = props()?.base ?? "";
+    this.baseInput = InputState.new({ value: this.baseText, placeholder: "base branch" });
+    this.baseInput.on("change", (_e, cx) => { this.baseText = this.baseInput.value(); this.error = ""; this.sugAt = 0; this.sugTouched = false; cx.notify(); });
+    this.baseInput.on("submit", (_e, cx) => { if (this.sugTouched && this.suggestions().length) return this.pick(this.suggestions()[this.sugAt], cx); this.go(cx); });
+    this.branches = [];
+    this.sugAt = 0;
+    this.sugTouched = false;
+    this.baseFocused = false;
+    this.baseInput.on("focus", (_e, cx) => { this.baseFocused = true; cx.notify(); });
+    this.baseInput.on("blur", (_e, cx) => { this.baseFocused = false; cx.notify(); });
+    // The command that runs in the new space's first terminal: a script from
+    // scripts.json next to this mod, or a custom one typed on the spot.
+    this.stepText = "";
+    this.scriptsRaw = null;
+    this.scriptsLoaded = false;
+    this.defaultCommand = undefined;
+    this.defaultApplied = false;
+    this.custom = "";
+    this.customInput = InputState.new({ value: "", placeholder: "command, e.g. npm install && npm run dev" });
+    this.customInput.on("change", (_e, cx) => { this.custom = this.customInput.value(); this.error = ""; cx.notify(); });
+    this.customInput.on("submit", (_e, cx) => this.go(cx));
+    this.customFocused = false;
+    this.customInput.on("focus", (_e, cx) => { this.customFocused = true; cx.notify(); });
+    this.customInput.on("blur", (_e, cx) => { this.customFocused = false; cx.notify(); });
+    this.scripts = [{ name: "No script" }, { name: "Custom…", custom: true }];
+    this.scriptAt = 0;
+    this.scriptOpen = false;
+    cx.spawn(async (cx) => {
+      try {
+        const raw = await readTextFile(`${appHome()}/mods/herdr-tui-layout-worktree/scripts.json`);
+        this.scriptsRaw = raw;
+        const list = JSON.parse(raw ?? "[]").filter((x) => x && x.name && x.command);
+        this.scripts = [{ name: "No script" }, ...list, { name: "Custom…", custom: true }];
+      } catch {}
+      this.scriptsLoaded = true;
+      this.applyDefaultScript();
+      cx.notify();
+    });
     this.busy = false;
     this.error = "";
     this.repo = undefined; // undefined: looking, null: not in git
@@ -148,11 +193,77 @@ export default class Worktree extends View {
           this.unpushed = (await submodules(repo.top, this.on)).unpushed;
         }
         if (repo && this.opening) this.list = await checkouts(repo, this.on);
+        if (repo && !this.opening && props().action !== "remove") {
+          // The base branch defaults to where this checkout is now.
+          if (!this.baseText) {
+            const cur = await git(repo.top, ["symbolic-ref", "--short", "-q", "HEAD"], this.on);
+            this.baseText = cur.ok && cur.out ? cur.out : "HEAD";
+            this.baseInput.set_value(this.baseText);
+          }
+          // A default script the repo kind suggests, when one is saved.
+          let def = null;
+          if (!this.on) {
+            const has = async (f) => (await exec("sh", ["-c", '[ -f "$1/$2" ]', "x", repo.top, f])).code === 0;
+            if ((await has("artisan")) || (await has("composer.json"))) def = "composer install";
+            else if (await has("package.json")) def = "yarn install";
+          }
+          this.defaultCommand = def ?? "";
+          this.applyDefaultScript();
+          // Every local and remote branch, for the base field's suggestions.
+          const refs = await git(repo.main, ["for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes"], this.on);
+          this.branches = refs.out.split("\n").map((x) => x.trim()).filter((x) => x && !x.endsWith("/HEAD") && x !== "origin");
+        }
         this.repo = repo;
         cx.notify();
         if (props().branch) await this.work(cx);
       } catch (error) { this.repo = null; this.error = String(error); cx.notify(); }
     });
+  }
+
+  applyDefaultScript() {
+    if (this.defaultApplied || !this.scriptsLoaded || this.defaultCommand === undefined) return;
+    this.defaultApplied = true;
+    const at = this.scripts.findIndex((x) => x.command && x.command === this.defaultCommand);
+    if (at > 0) this.scriptAt = at;
+  }
+
+  progress(text) {
+    this.stepText = text;
+    this.cx?.notify();
+  }
+
+  async saveCustom(cx) {
+    const command = this.custom.trim();
+    if (!command || this.scripts.some((x) => x.command === command)) return;
+    const name = command.length > 36 ? `${command.slice(0, 35)}…` : command;
+    const list = [...this.scripts.filter((x) => x.command), { name, command }];
+    const text = JSON.stringify(list.map(({ name, command }) => ({ name, command })), null, 2);
+    try { await writeTextFile(`${appHome()}/mods/herdr-tui-layout-worktree/scripts.json`, text, this.scriptsRaw); }
+    catch (error) { this.error = `Could not save the script: ${error}`; return cx.notify(); }
+    this.scriptsRaw = text;
+    this.scripts = [{ name: "No script" }, ...list, { name: "Custom…", custom: true }];
+    this.scriptAt = list.length;
+    this.customInput.set_value("");
+    this.custom = "";
+    cx.notify();
+  }
+
+  suggestions() {
+    if (!this.baseFocused) return [];
+    const f = this.baseText.trim().toLowerCase();
+    const list = this.branches.filter((b) => !f || b.toLowerCase().includes(f));
+    if (list.length === 1 && list[0] === this.baseText.trim()) return [];
+    return list.slice(0, 6);
+  }
+
+  pick(branch, cx) {
+    if (!branch) return;
+    this.baseText = branch;
+    this.baseInput.set_value(branch);
+    this.sugTouched = false;
+    this.sugAt = 0;
+    this.baseFocused = false;
+    cx.notify();
   }
 
   space() {
@@ -171,6 +282,8 @@ export default class Worktree extends View {
 
   async work(cx) {
     if (this.busy || !this.repo) return;
+    this.cx = cx;
+    this.stepText = "";
     this.busy = true;
     this.error = "";
     cx.notify();
@@ -184,14 +297,40 @@ export default class Worktree extends View {
   async create() {
     const branch = this.text.trim();
     if (!branch) return "Type a branch name.";
+    this.progress("Checking…");
+    if (!(await git(this.repo.main, ["check-ref-format", "--branch", branch], this.on)).ok) return `"${branch}" is not a valid branch name.`;
     const path = `${ROOT(this.userHome)}/${this.repo.name}/${slug(branch)}`;
+    const listed = await git(this.repo.main, ["worktree", "list", "--porcelain"], this.on);
+    let at = "";
+    for (const line of listed.out.split("\n")) {
+      if (line.startsWith("worktree ")) at = line.slice(9);
+      else if (line === `branch refs/heads/${branch}`) return `Branch ${branch} is already checked out in ${tilde(at, this.userHome)}.`;
+    }
+    if ((await exec("sh", ["-c", '[ -e "$1" ]', "x", path], { on: this.on })).code === 0) return `Folder already exists: ${tilde(path, this.userHome)}.`;
     const exists = (await git(this.repo.main, ["show-ref", "--verify", "--quiet", `refs/heads/${branch}`], this.on)).ok;
-    const add = exists ? ["worktree", "add", path, branch] : ["worktree", "add", "-b", branch, path, "HEAD"];
-    const r = await git(this.repo.top, add, this.on);
+    const base = this.baseText.trim() || "HEAD";
+    if (!exists) {
+      // A base that names a remote branch is fetched first, so a new branch
+      // can start from work that isn't cloned yet.
+      const m = base.match(/^([^/]+)\/(.+)$/);
+      const remotes = (await git(this.repo.main, ["remote"], this.on)).out.split("\n").map((x) => x.trim());
+      if (m && remotes.includes(m[1])) {
+        this.progress(`Fetching ${base}…`);
+        await git(this.repo.main, ["fetch", m[1], m[2]], this.on, 60_000);
+      }
+    }
+    if (!exists && !(await git(this.repo.main, ["rev-parse", "--verify", "--quiet", `${base}^{commit}`], this.on)).ok) return `Base "${base}" not found.`;
+    this.progress("Creating worktree…");
+    const add = exists ? ["worktree", "add", path, branch] : ["worktree", "add", "-b", branch, path, base];
+    const r = await git(this.repo.top, add, this.on, 600_000);
     if (!r.ok) return r.err || "git worktree add failed.";
     const p = props();
     // Leave spaces unnamed so they follow the checkout folder and nest under the repo.
-    run("space.new", { folder: path, machine: this.on, tab: p.tab, argv: p.argv });
+    this.progress("Opening space…");
+    const script = this.scripts[this.scriptAt];
+    const command = script?.custom ? this.custom.trim() : script?.command;
+    const argv = command ? ["sh", "-c", command] : p.argv;
+    run("space.new", { folder: path, machine: this.on, tab: p.tab, argv });
     return "";
   }
 
@@ -228,6 +367,20 @@ export default class Worktree extends View {
   }
 
   key(e, cx) {
+    // The base field's suggestion list: arrows move, tab picks.
+    if (!this.opening && this.baseFocused) {
+      const sug = this.suggestions();
+      if (sug.length && (e.key === "down" || e.key === "up")) {
+        this.sugTouched = true;
+        this.sugAt = (this.sugAt + (e.key === "down" ? 1 : sug.length - 1)) % sug.length;
+        cx.stop_propagation();
+        return cx.notify();
+      }
+      if (sug.length && e.key === "tab") {
+        this.pick(sug[this.sugAt], cx);
+        return cx.stop_propagation();
+      }
+    }
     if (e.key === "escape") return this.close();
     if (this.opening) {
       const n = this.shown().length;
@@ -320,7 +473,7 @@ export default class Worktree extends View {
             ? !r.linked
               ? "This is the repository's main checkout, not a worktree."
               : `Closes the space and deletes ${tilde(r.top, this.userHome)}. The branch stays.`
-            : `A new space on a checkout in ${tilde(ROOT(this.userHome), this.userHome)}/${r.name}/. A branch that exists is checked out; a new one starts from here.`;
+            : `A new space on a checkout in ${tilde(ROOT(this.userHome), this.userHome)}/${r.name}/. A branch that exists is checked out; a new one starts from the base branch.`;
     const blocked = !r || (remove && !r.linked);
     return v_flex()
       .id("worktree")
@@ -336,17 +489,134 @@ export default class Worktree extends View {
       .when(remove && this.dirty, (el) => el.child(div().text_color(t.blocked).child("It has uncommitted changes: they will be lost.")))
       .when(remove && this.unpushed.length > 0, (el) => el.child(div().text_color(t.blocked).child(`Submodule ${this.unpushed.join(", ")} has commits that aren't pushed anywhere: they will be lost.`)))
       .when(!remove && !blocked, (el) =>
-        el.child(
-          Input.new(this.input)
-            .h(32)
-            .px(10)
-            .items_center()
-            .rounded(6)
-            .border(1)
-            .border_color(this.inputFocused ? t.accent : t.input)
-            .bg(t.background)
-            .text_color(t.foreground),
-        ),
+        el
+          .child(label(t, "Git branch", "created, or checked out if it already exists"))
+          .child(
+            Input.new(this.input)
+              .h(32)
+              .px(10)
+              .items_center()
+              .rounded(6)
+              .border(1)
+              .border_color(this.inputFocused ? t.accent : t.input)
+              .bg(t.background)
+              .text_color(t.foreground),
+          )
+          .child(label(t, "Base branch", "new branches start from here"))
+          .child(
+            Input.new(this.baseInput)
+              .h(32)
+              .px(10)
+              .items_center()
+              .rounded(6)
+              .border(1)
+              .border_color(this.baseFocused ? t.accent : t.input)
+              .bg(t.background)
+              .text_color(t.foreground),
+          )
+          .when(this.suggestions().length > 0, (e) =>
+            e.child(
+              v_flex()
+                .rounded(6)
+                .border(1)
+                .border_color(t.border)
+                .bg(t.popover)
+                .children(
+                  this.suggestions().map((b, i) =>
+                    div()
+                      .id(`base-${i}`)
+                      .h(26)
+                      .px(10)
+                      .flex()
+                      .items_center()
+                      .text_size(12)
+                      .text_color(i === this.sugAt && this.sugTouched ? t.foreground : t.muted)
+                      .bg(i === this.sugAt && this.sugTouched ? t.selected : t.popover)
+                      .hover((x) => x.bg(t.hover))
+                      .on_mouse_down("left", (_e, cx) => { cx.stop_propagation(); this.pick(b, cx); })
+                      .child(b),
+                  ),
+                ),
+            ),
+          )
+          .child(label(t, "Startup script", "runs in the new space's terminal"))
+          .child(
+            h_flex()
+              .id("script-trigger")
+              .h(32)
+              .px(10)
+              .items_center()
+              .justify_between()
+              .rounded(6)
+              .border(1)
+              .border_color(this.scriptOpen ? t.accent : t.input)
+              .bg(t.background)
+              .text_color(this.scriptAt ? t.foreground : t.muted)
+              .hover((st) => st.bg(t.hover))
+              .on_click((_e, cx) => { this.scriptOpen = !this.scriptOpen; cx.notify(); })
+              .child(this.scripts[this.scriptAt]?.name ?? "No script")
+              .child(svg("mods/workspace-chrome/chevron-down.svg").size(14).text_color(t.dim)),
+          )
+          .when(this.scripts[this.scriptAt]?.custom && !this.scriptOpen, (e) =>
+            e.child(
+              h_flex()
+                .gap(6)
+                .child(
+                  Input.new(this.customInput)
+                    .h(32)
+                    .flex_1()
+                    .px(10)
+                    .items_center()
+                    .rounded(6)
+                    .border(1)
+                    .border_color(this.customFocused ? t.accent : t.input)
+                    .bg(t.background)
+                    .text_color(t.foreground),
+                )
+                .when(this.custom.trim() && !this.scripts.some((x) => x.command === this.custom.trim()), (row) =>
+                  row.child(
+                    div()
+                      .id("save-script")
+                      .h(32)
+                      .px(10)
+                      .flex()
+                      .items_center()
+                      .rounded(6)
+                      .border(1)
+                      .border_color(t.input)
+                      .text_size(12)
+                      .text_color(t.muted)
+                      .hover((x) => x.bg(t.hover))
+                      .on_click((_e, cx) => cx.spawn(async (cx) => this.saveCustom(cx)))
+                      .child("save"),
+                  ),
+                ),
+            ),
+          )
+          .when(this.scriptOpen, (e) =>
+            e.child(
+              v_flex()
+                .rounded(6)
+                .border(1)
+                .border_color(t.border)
+                .bg(t.popover)
+                .children(
+                  this.scripts.map((sc, i) =>
+                    div()
+                      .id(`script-${i}`)
+                      .h(28)
+                      .px(10)
+                      .flex()
+                      .items_center()
+                      .text_color(i === this.scriptAt ? t.foreground : t.muted)
+                      .bg(i === this.scriptAt ? t.selected : t.popover)
+                      .hover((x) => x.bg(t.hover))
+                      .on_click((_e, cx) => { this.scriptAt = i; this.scriptOpen = false; cx.notify(); if (sc.custom) cx.timer.after(50, () => this.customInput.focus()); })
+                      .child(sc.name),
+                  ),
+                ),
+            ),
+          ),
       )
       .when(Boolean(this.error), (el) => el.child(div().text_color(t.blocked).child(this.error)))
       .child(div().flex_1())
@@ -355,7 +625,9 @@ export default class Worktree extends View {
           .justify_end()
           .text_size(11)
           .text_color(t.dim)
-          .child(this.busy ? "working…" : blocked ? "esc close" : remove ? "↵ remove · esc cancel" : "↵ create · esc cancel"),
+          .gap(6)
+          .when(this.busy, (el) => el.child(div().frames(["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"], 90)))
+          .child(this.busy ? this.stepText || "working…" : blocked ? "esc close" : remove ? "↵ remove · esc cancel" : "↵ create · esc cancel"),
       );
   }
 }

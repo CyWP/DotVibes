@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **New:** the New worktree dialog grew a base branch and a startup
+  script, ported from the herdrtw layout. The base defaults to where the
+  repo is checked out now, suggests the repo's local and remote branches
+  while you type (↑↓ move, tab picks) and a base that names a remote
+  branch is fetched first. The startup script dropdown offers the scripts
+  saved in `mods/herdr-tui-layout-worktree/scripts.json` plus a custom
+  command you can save on the spot; it runs as the new space's first
+  terminal's command. Creation also validates the branch name and catches
+  a branch that's already checked out and an existing folder, with the
+  steps shown while it works. The dialog is taller (440×600) to fit.
+
 - **New:** `alt-j` / `alt-k` go to the next / previous space without the
   `ctrl-b` prefix, walking the sidebar's display order (worktrees right
   after their repo instead of wherever they sit in Herdr's model order)

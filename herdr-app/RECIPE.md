@@ -112,6 +112,18 @@ Top to bottom:
   order, agents needing you come first, then done, working, idle; in
   `spaces` order they follow the spaces list. `ctrl-b alt-1..9` jumps to the
   agent in that row.
+- **The New worktree dialog** (`ctrl-b shift-g`, or the space menu) asks
+  the git branch, the base branch and a startup script. The base defaults
+  to where the repo is checked out now and suggests the repo's local and
+  remote branches while the field is focused (↑↓ move, tab picks, the list
+  follows what you type); a base that names a remote branch is fetched
+  first. The startup script dropdown offers `No script`, the scripts saved
+  in `mods/herdr-tui-layout-worktree/scripts.json` and `Custom…` (type a
+  command, save it on the spot; a repo with `artisan`/`composer.json`
+  preselects a saved `composer install`, one with `package.json` a saved
+  `yarn install`). Enter creates: the branch name is validated, a branch
+  already checked out and an existing folder are caught, and the chosen
+  script runs as the new space's first terminal's command.
 - **Clicks:** a space switches to it; dragging a space onto another of the
   same machine moves it (it fades; an orange line shows where it lands);
   right-click a space for Rename, New / Open / Remove worktree, Close. A
@@ -186,7 +198,11 @@ Top to bottom:
   `frame: "none"` and drawing its own rounded box: `herdr-tui-layout-menu`
   (`menu`), `herdr-tui-layout-prompt` (`prompt`),
   `herdr-tui-layout-worktree` (`worktree`), `herdr-tui-layout-picker`
-  (`picker`), `herdr-tui-layout-help` (`help`).
+  (`picker`), `herdr-tui-layout-help` (`help`). The worktree copy's New
+  dialog also carries the base branch field (suggestions from
+  `git for-each-ref`, a remote base fetched first) and the startup script
+  picker (`scripts.json` next to the mod, custom commands saved there),
+  ported from the herdrtw layout (see NOTICE).
 - **extras/claude-usage-hook.sh**, optional: a Claude Code `statusLine`
   command that saves each session's status JSON to
   `~/.local/state/herdr-tui-layout/claude/<session_id>.json` and prints nothing.
@@ -195,8 +211,11 @@ Top to bottom:
 
 ## Watch out
 
-- **What it runs and reads:** `hostname`, `hc machine ls`, `git rev-parse` in each space's folder every 15s (to nest worktrees) and `git` in the worktree dialog, `sh`/`ls`/`stat` over `~/.local/state/herdr-tui-layout/claude/`,
-  and lazygit/btop/yazi on their keys. No network.
+- **What it runs and reads:** `hostname`, `hc machine ls`, `git rev-parse` in each space's folder every 15s (to nest worktrees) and `git` in the worktree dialog (creating a worktree validates the branch, probes the checkout for a package manifest and fetches a remote base), `sh -c` (the chosen startup script, as the new space's first terminal), `sh`/`ls`/`stat` over `~/.local/state/herdr-tui-layout/claude/`,
+  and lazygit/btop/yazi on their keys. No HTTP requests; the dialog's
+  `git fetch` talks to the repo's remote, only when the base branch names
+  one. The dialog reads and writes `mods/herdr-tui-layout-worktree/scripts.json`
+  (saved startup scripts).
 - **Without the usage hook** the agents half's status line just leaves
   model, ctx, 5h and week out. The hook applies to every Claude Code session
   on the machine.

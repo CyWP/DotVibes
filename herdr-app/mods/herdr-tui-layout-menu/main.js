@@ -123,7 +123,7 @@ export default class Menu extends View {
     const it = items(props(), this.git)[i];
     if (!it) return;
     closeOverlay(props()?.overlay);
-    if (it[1] === "worktree") openOverlay({ mod: "herdr-tui-layout-worktree", kind: "dialog", frame: "none", ...(it[2].action === "open" ? { width: 560, height: 480 } : { width: 440, height: 260 }), props: it[2] });
+    if (it[1] === "worktree") openOverlay({ mod: "herdr-tui-layout-worktree", kind: "dialog", frame: "none", ...(it[2].action === "open" ? { width: 560, height: 480 } : it[2].action === "remove" ? { width: 440, height: 260 } : { width: 440, height: 600 }), props: it[2] });
     else if (it[1] === "app.help") openOverlay({ mod: "herdr-tui-layout-help", kind: "dialog", frame: "none", width: 560, height: 560 });
     else if (it[1] === "space.rename" || it[1] === "tab.rename") rename(it[1].split(".")[0], /** @type {{ id: string }} */ (it[2]).id);
     else run(it[1], it[2]);

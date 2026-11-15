@@ -8,3 +8,8 @@ what changed:
   mods/herdr-tui-layout-picker
   mods/herdr-tui-layout-prompt
   mods/herdr-tui-layout-worktree
+
+mods/herdr-tui-layout-worktree also carries its base branch field and
+startup script picker, ported from the herdrtw layout
+(https://github.com/luqastw/herdrtw, mods/herdrtw/parts/worktree.js) —
+itself a modified copy of the same Herdr mod, Apache-2.0.

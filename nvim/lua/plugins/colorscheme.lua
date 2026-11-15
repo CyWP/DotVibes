@@ -37,8 +37,11 @@ return {
         bright_green = "#cdcf67",
         -- the purple (constants, numbers, booleans): lilac, not rose
         bright_purple = "#dfaee6",
-        -- the orange (operators, special): our peach, not stock orange
-        bright_orange = "#ffaf80",
+        -- the orange (operators, special): a punchier peach (the light
+        -- peach for imports/decorators stays softer)
+        bright_orange = "#ff9547",
+        -- the aqua (imports, decorators, special marks): light peach
+        bright_aqua = "#ffc7a2",
         -- the red: pinkish (crimson), not orange-red
         bright_red = "#ff4d7f",
       },
@@ -48,7 +51,7 @@ return {
         ["@string.documentation.python"] = { link = "Comment" },
         RainbowFg     = { fg = "#ebdbb2" }, -- the regular-text colour
         RainbowGreen  = { fg = "#b8bb26" },
-        RainbowAqua   = { fg = "#8ec07c" },
+        RainbowAqua   = { fg = "#ffc7a2" },
         RainbowBlue   = { fg = "#83a598" },
         RainbowPurple = { fg = "#dfaee6" },
       },

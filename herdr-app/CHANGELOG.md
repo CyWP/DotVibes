@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **New:** `alt-j` / `alt-k` go to the next / previous space without the
+  `ctrl-b` prefix, walking the sidebar's display order (worktrees right
+  after their repo instead of wherever they sit in Herdr's model order)
+  and wrapping at the ends; `ctrl-b down` / `up` walk the same way.
+  `alt-h` / `alt-l` go to the previous / next tab.
+
+- **New:** the sidebar wears the pane-card treatment. The vertical
+  separator is gone; the spaces and agents halves are two rounded cards
+  (1px border, 6px radius) floating on the wallpaper with 6px gaps and
+  margins, muting like the terminals — the mod paints the terminal
+  surface at 30% instead of its old opaque-ish chrome veil. The folded
+  strip folds inside its card.
+
 - **Changed:** the recent-space walk wraps now: `ctrl-b left` past the
   oldest space lands on the newest, and `ctrl-b right` past the newest
   lands on the oldest.

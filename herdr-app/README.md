@@ -47,17 +47,18 @@ Herdr.
   pastels for the thin bits (borders, dim text, idle marks), and Menlo at
   one size everywhere, terminals and panels alike. The wallpaper shows
   faintly through it all — the background is your own image, unmuted, and
-  every surface mutes it itself: the sidebar with a 70%-chrome veil, the
-  terminals with `terminal_opacity`.
+  every surface mutes it itself: the sidebar cards and the terminals with
+  the terminal surface at ~78%, the sidebar now floating as two rounded
+  cards with a 1px border instead of a vertical separator.
 - **Rounded popups that fit.** Right-click menus, rename, the worktree
   dialog, the picker and help draw their own rounded boxes, so their corners
   don't show the notch Herdr's stock dialogs have.
 - **The wallpaper behind your text.** Terminal panes paint no card fill —
-  the image sits directly under the terminal — and the terminal background
-  itself draws at 30% (`terminal_opacity: 0.7`), so the washes come
-  through the text. Adjust with one number (`terminal_opacity` in the
+- **The wallpaper behind your text.** Terminal panes paint no card fill —
+  the image sits directly under the terminal — and the terminal surface
+  paints over it at ~78% (`terminal_opacity: 0.68`), so the washes come
+  through faintly. Adjust with one number (`terminal_opacity` in the
   layout file).
-
 ## Try it in two minutes
 
 You need:
@@ -109,7 +110,9 @@ All on the `ctrl-b` prefix, and only while this layout is showing
 | `c` · `n` · `p` | new tab · next tab · previous tab |
 | `shift-x` · `shift-t` | close tab · rename tab |
 | `shift-1`…`shift-9` | space 1–9 |
-| `up` · `down` | previous space · next space |
+| `alt-h` · `alt-l` | previous tab · next tab |
+| `alt-j` · `alt-k` | next space · previous space (sidebar order, wraps) |
+| `up` · `down` | previous space · next space (same, on the prefix) |
 | `left` · `right` | back · forward through your recent spaces (wraps at the ends) |
 | `r` · `shift-w` | rename this space |
 | `shift-n` · `shift-d` | new space · close space |

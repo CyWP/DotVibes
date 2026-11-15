@@ -31,19 +31,24 @@ Behind everything, the layout paints its background with
 doesn't draw a PNG background — and pre-scaled 150% so the window maps to
 the image's centre, not its transparent edges (`magick bg.png -resize
 150% -background "#1b1a17" -flatten -quality 92 herdr-tui-layout-bg.jpg`).
-Every surface mutes it itself: the sidebar's two copies paint a 70%-chrome
-veil (`bg(t.chrome + "b3")`), the tab bar's segments are opaque, and the
-terminals draw their own background at 30% (`terminal_opacity: 0.7` on the
-root), so the washes reach the text at three-tenths strength. The pane
-frames paint nothing, so the image sits directly under the terminals. The
+Every surface mutes it itself: the terminals paint their own surface
+a touch more transparent than stock (`terminal_opacity: 0.68` on the
+root — measured at ~78% coverage against the raw wallpaper), the
+sidebar's two cards carry the same base (`bg(t.background + "c7")` in
+the mod), and
+the tab bar's segments are opaque. The pane frames paint nothing, so the
+image sits directly under the terminals only through the pane gaps. The
 thin margins around the cards have no muting — they show the raw washes
 where the image has content. The file's transparent areas flatten onto
 this theme's chrome, so it belongs to this theme only.
 
 Top to bottom:
 
-1. **Sidebar, top half: spaces.** One rounded `#2d2b27` block per machine,
-   6px apart.
+1. **Sidebar, top half: spaces.** A rounded card with a 1px border,
+   muting like the terminals — the card itself paints the terminal
+   surface at ~78%. Inside, one panel per machine (transparent; the rows
+   sit directly on the card's base),
+   3px from the card's edges on every side and 6px between blocks.
    - The block's first row is the machine: `▾ Local` (this Mac) or its name,
      bold; `+` to start a space there; a 7px dot, green connected, yellow
      with `◐ reconnecting`, red with `unreachable`. Click the row to fold the
@@ -62,14 +67,17 @@ Top to bottom:
      under the space holding that repo's main checkout.
 2. **Tab bar, a 2px hairline over the panes**, in the border colour so it
    meshes with the border lines around it, aligned with the cards' side
-   edges (6px in from the sidebar's divider, 3px below the window's top
+   edges (6px in from the window edge, 3px below the window's top
    edge). Divided once per tab of the shown space, no gaps and no text:
    the shown tab's segment is solid orange, the rest `#514d43`, and a
    hovered one lightens. Nothing shows when the space has no tabs. No `+`:
    new tabs come from `ctrl-b c` or the picker.
 3. **Sidebar, bottom half: agents.** A draggable divider between the halves.
-   - Heading `AGENTS` with how many there are (or `2 need you` in red), and
-     a `priority` / `spaces` switch.
+   - The same stacked sub-panel as the machines: one panel per half
+     (transparent; the rows sit on the card's base, 3px from the card's
+     edges) holding the rows, with its header inside — `AGENTS` with
+     how many there are (or `2 need you` in red), and a `priority` /
+     `spaces` switch.
    - One row per agent: `●` / `○` / `·` in its status colour, the space name
      bold, `· <tab name or number>` dim; under it, what the agent's terminal
      is titled (Claude's current task), muted. The agent you're in is on
@@ -86,13 +94,16 @@ Top to bottom:
    letter with a mark; `»` at the bottom opens it again at its last width.
 5. **Panes:** cards with 6px corners and 6px gaps, no header line, terminal
    padding 6×10. The card paints no fill of its own — the background image
-   sits directly under the terminal — and the terminal draws its `#242320`
-   at 30% over it (`terminal_opacity: 0.7` on the root), so the wallpaper's
-   washes show through the text. The tab bar hairline at the window's top,
-   then 3px, then the cards; 3px at the window's bottom.
-6. **Popups and dialogs** (right-click menus, rename, worktree, picker,
-   help) draw their own opaque `#2d2b27` box with 10px corners and a 1px
-   border; the selected row is `#484439` and follows the pointer.
+   sits directly under the terminal — and the terminal paints its `#242320`
+   surface at ~78% over it (`terminal_opacity: 0.68` on the root,
+   measured), so the wallpaper's washes show through. The tab bar
+   hairline sits 4px below the window's top and 5px above the cards; 3px
+   at the window's bottom.
+6. **Popups and dialogs** (right-click menus, rename, worktree, help)
+   draw their own opaque `#2d2b27` box with 10px corners and a 1px
+   border; the selected row is `#484439` and follows the pointer. The
+   space picker is the exception: its box is the popover colour at ~78%,
+   matching the panels.
 
 ## How it behaves
 
@@ -113,7 +124,10 @@ Top to bottom:
 - **Keys** (`keys.json`, only while this layout shows; prefix `ctrl-b`):
   `c` new tab, `n` / `p` next / previous, `shift-x` close tab,
   `shift-t` rename tab; `shift-1..9` space N, `up` / `down` previous /
-  next space, `left` / `right` back / forward through your recent spaces
+  next space and `alt-j` / `alt-k` the same without the prefix — both walk
+  the sidebar's order (worktrees right after their repo), wrapping at the
+  ends, and `alt-h` / `alt-l` previous / next tab,
+  `left` / `right` back / forward through your recent spaces
   (wrapping at the ends; a new jump drops the forward ones; closed
   spaces are skipped),
   `shift-n` new space, `r` or `shift-w` rename space, `shift-d` close
@@ -136,10 +150,12 @@ Top to bottom:
 - **Layout** (`layouts/herdr-tui-layout.json`): a row (`titlebar: "none"`,
   `traffic_lights` `[14, 14]`, `terminal_menu: "herdr-tui-layout-menu"`,
   `background` the wallpaper image `backgrounds/herdr-tui-layout-bg.jpg`
-  (`fit: "cover"`), `terminal_opacity: 0.7`, 1px `border` divider):
+  (`fit: "cover"`), `terminal_opacity: 0.68`):
   `sidebar` (column, 280px,
-  40–480) holding `side-spaces` and `side-agents` (blocks, weight 1, min 80,
-  both `window_drag`; both `herdr-tui-layout-side` with `props.part`
+  40–480, gap 5, no padding — the mod draws the cards so the margins can
+  differ per side: 4 at the top and bottom, 3 at the sides) holding
+  `side-spaces` and `side-agents`
+  (blocks, weight 1, min 80, both `window_drag`; both `herdr-tui-layout-side` with `props.part`
    `"spaces"` / `"agents"`), and `work` (column, resizable false so the
    hairline can't be stretched, padding `[3, 6]`, gap 3) holding
    `tabsbar` (block, 2px, `window_drag`, `herdr-tui-layout-tabs`) and
@@ -152,12 +168,15 @@ Top to bottom:
   `localStorage`), `openOverlay`; polls `hc machine ls --json` for connection
   states, and its git probe is shared as `side.git` for the picker's
   worktree nesting; listens on `nextCommand()` for `agent-N`, `recent-back`,
-  `recent-forward`, `split-left`, `split-up`, `fold-toggle`, `rename-space`, `new-worktree` (spaces copy; the
-  recents pair walk a back/forward list of spaces the mod tracks in
-  `render()`) and `picker`, `help`, `rename-tab`,
-  `popup-lazygit|btop|yazi` (agents copy). The agents copy also runs the
-  status chores: `hostname -s`, `hc machine ls --json` for hostnames, and a
-  `sh` loop reading `~/.local/state/herdr-tui-layout/claude/*.json`; starts
+   `recent-forward`, `space-next`, `space-prev`, `split-left`, `split-up`, `fold-toggle`, `rename-space`, `new-worktree` (spaces copy; the
+   recents pair walk a back/forward list of spaces the mod tracks in
+   `render()`, and the space pair walk `displayOrder` — each top space
+   followed by its worktrees, per machine, rebuilt every render) and
+   `picker`, `help`, `rename-tab`,
+   `popup-lazygit|btop|yazi` (agents copy). The agents copy also runs the
+   status chores: `hostname -s`, `hc machine ls --json` for hostnames, and
+   a `sh` loop reading `~/.local/state/herdr-tui-layout/claude/*.json`;
+   starts
   popups with `hc run --bg --rm` and shows them as dialog overlays holding
   the terminal, sized as shares of the window.
 - **herdr-tui-layout-tabs:** `spaces()`, `tab.select`; one full-height

@@ -191,6 +191,22 @@ export default class TuiSide extends View {
             if (made) run("pane.swap", { pane: from, target: made });
           }
         }
+        if ((c === "space-next" || c === "space-prev") && (props()?.part ?? "spaces") === "spaces") {
+          // alt-j / alt-k and ctrl-b up / down: walk the sidebar's display
+          // order (worktrees right after their repo), wrapping at the ends.
+          const step = c === "space-next" ? 1 : -1;
+          const ids = this.displayOrder ?? [];
+          const list = spaces();
+          const n = ids.length;
+          if (n) {
+            let i = ids.indexOf(list.find((x) => x.active)?.id);
+            if (i === -1) i = 0;
+            for (let k = 1; k <= n; k++) {
+              const id = ids[(i + step * k + n * 4) % n];
+              if (list.some((x) => x.id === id)) { run("space.select", { id }); break; }
+            }
+          }
+        }
         if ((c === "recent-back" || c === "recent-forward") && (props()?.part ?? "spaces") === "spaces") {
           // ctrl-b left / right: walk back and forward through the spaces
           // you've been on. The walk wraps at the ends (past the oldest
@@ -319,6 +335,11 @@ export default class TuiSide extends View {
       this.moving = false;
       this.shownSpace = shown;
     }
+    // The display order for space-next / space-prev: each top space followed
+    // by its worktrees, per machine — the order the sidebar draws, not the
+    // raw spaces() order (worktrees created later would otherwise be
+    // walked last).
+    this.displayOrder = [];
     const where = (a) => list.findIndex((s) => s.id === a.space);
     const ags = [...agents()].sort(this.sort === "spaces"
       ? (a, b) => where(a) - where(b) || a.tab_index - b.tab_index
@@ -328,16 +349,13 @@ export default class TuiSide extends View {
     const tint = (st) => (st ? t[st] ?? t.dim : t.border);
     const dot = (st, size = 8) => div().flex_none().size(size).rounded(size / 2).bg(tint(st));
 
-    const section = (label, right) => h_flex().px(16).pt(14).pb(6).items_center().text_size(12.5).font_bold().text_color(t.dim)
-      .child(div().flex_1().child(label.toUpperCase())).when(right != null, (el) => el.child(right));
-
     // One row per space: a lifted background marks the shown one. A repo with
     // worktrees under it gets ▾ / ▸ at the right end to fold them.
     const space = (s, kids = 0) => {
       const i = list.indexOf(s);
-      return h_flex().id(`cs-${s.id}`).relative().mx(4).pl(8).pr(8).py(3).gap(8).rounded(4).items_center()
-      .when(s.active, (el) => el.bg(t.selected))
-      .when(!s.active, (el) => el.hover((st) => st.bg(t.border)))
+      return h_flex().id(`cs-${s.id}`).relative().px(10).py(4).gap(8).rounded(4).items_center()
+      .when(s.active, (el) => el.bg(t.selected + "b3"))
+      .when(!s.active, (el) => el.hover((st) => st.bg(t.border + "b3")))
       .when(this.pressed === i && this.over !== i, (el) => el.opacity(0.5))
       .when(this.pressed !== null && this.over === i && this.pressed !== i, (el) => el.child(
         div().absolute().left(0).right(0).h(2).bg(t.accent)
@@ -380,9 +398,9 @@ export default class TuiSide extends View {
     // aren't a terminal's exact cell height. A trunk runs down the left (to
     // the middle on the last row, so it ends in └) and a twig goes right.
     // The trunk reaches 2px up into the row above to bridge the list's gap.
-    const branchRow = (s, last) => h_flex().id(`cs-${s.id}`).relative().mx(4).h(20).pl(30).pr(8).gap(6).rounded(4).items_center().text_size(12.5)
-      .when(s.active, (el) => el.bg(t.selected))
-      .when(!s.active, (el) => el.hover((st) => st.bg(t.border)))
+    const branchRow = (s, last) => h_flex().id(`cs-${s.id}`).relative().h(20).pl(30).pr(10).gap(6).rounded(4).items_center().text_size(12.5)
+      .when(s.active, (el) => el.bg(t.selected + "b3"))
+      .when(!s.active, (el) => el.hover((st) => st.bg(t.border + "b3")))
       .on_click(() => run("space.select", { id: s.id }))
       // The sidebar block drags the window; rows opt their presses out.
       .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
@@ -403,7 +421,9 @@ export default class TuiSide extends View {
         if (linked(s) && parent(s)) continue; // drawn under its repo
         const kids = linked(s) ? [] : own.filter((w) => linked(w) && parent(w) === s);
         rows.push(space(s, kids.length));
-        if (!this.repoShut.has(s.id)) kids.forEach((w, i) => rows.push(branchRow(w, i === kids.length - 1)));
+        this.displayOrder.push(s.id);
+        if (!this.repoShut.has(s.id)) kids.forEach((w, i) => { rows.push(branchRow(w, i === kids.length - 1)); this.displayOrder.push(w.id); });
+        else kids.forEach((w) => this.displayOrder.push(w.id));
       }
       return rows;
     };
@@ -417,9 +437,9 @@ export default class TuiSide extends View {
       const shut = this.shut.has(key);
       // Shut, the row still shows the most urgent agent status inside it.
       const worst = own.map((s) => s.status).filter(Boolean).sort((a, b) => (RANK[a] ?? 9) - (RANK[b] ?? 9))[0];
-      return v_flex().mx(6).mt(3).mb(3).pb(4).rounded(6).bg(t.raised).gap(2)
+      return v_flex().mx(3).mt(3).mb(3).pb(4).rounded(6).gap(2)
         .child(h_flex().id(`cm-${key || "local"}`).px(10).py(5).gap(8).items_center().rounded_t(6).text_size(12.5)
-          .hover((st) => st.bg(t.border))
+          .hover((st) => st.bg(t.border + "b3"))
           .on_click((_e, cx) => this.toggle(key, cx))
           .child(div().w(10).text_size(12.5).text_color(t.dim).child(shut ? "▸" : "▾"))
           .child(div().flex_1().truncate().text_color(t.foreground).font_bold().child(m.name ?? "Local"))
@@ -427,7 +447,7 @@ export default class TuiSide extends View {
           .when(down, (el) => el.child(div().text_size(12.5).text_color(t.blocked).child("unreachable")))
           .when(back, (el) => el.child(div().text_size(12.5).text_color(t.working).child("◐ reconnecting")))
           .when(!down && !shut, (el) => el.child(div().id(`cm-new-${key || "local"}`).px(6).rounded(4).text_size(12.5).text_color(t.dim)
-            .hover((st) => st.bg(t.border).text_color(t.foreground))
+            .hover((st) => st.bg(t.border + "b3").text_color(t.foreground))
             .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
             .on_click((_e, cx) => { cx.stop_propagation(); run("space.new", { machine: key }); }).child("+")))
           .child(dot(down ? "blocked" : back ? "working" : "done", 7)))
@@ -438,9 +458,10 @@ export default class TuiSide extends View {
     // under it what the agent is doing. Every agent here is Claude Code, so
     // the program isn't repeated on each row.
     const mark = (st) => (st === "idle" ? "○" : st ? "●" : "·");
-    const agent = (a) => h_flex().id(`ca-${a.address}`).mx(6).px(8).py(5).gap(7).items_start().rounded(4)
-      .bg(a.focused ? t.selected : a.status === "blocked" ? t.blocked + "1f" : t.chrome)
-      .when(!a.focused, (el) => el.hover((st) => st.bg(t.hover)))
+    const agent = (a) => h_flex().id(`ca-${a.address}`).px(10).py(4).gap(7).items_start().rounded(4)
+      .when(a.focused, (el) => el.bg(t.selected + "b3"))
+      .when(a.status === "blocked", (el) => el.bg(t.blocked + "1f"))
+      .when(!a.focused, (el) => el.hover((st) => st.bg(t.hover + "b3")))
       .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
       .on_click(() => { run("space.select", { id: a.space }); run("pane.focus", { pane: a.pane }); })
       .child(div().w(10).text_size(12.5).text_color(a.status ? tint(a.status) : t.dim).child(mark(a.status)))
@@ -455,17 +476,28 @@ export default class TuiSide extends View {
     const sized = (el) => el.id(`cs-root-${part}`).on_size_change((size, cx) => {
       if (Math.abs(size.width - this.width) >= 1) { this.width = size.width; cx.notify(); }
     });
+    // The card is drawn by the mod, not the layout, so the margins can
+    // differ per side: 4 at the top, 4 at the bottom, 3 at the sides; the
+    // 5px between the cards comes from the column gap.
+    // Like the pane frames, the card paints NO fill — the panels inside
+    // carry the terminal-surface wash themselves.
+    const card = (el) => el.flex_1().min_h(0).text_color(t.foreground)
+      .mt(part === "spaces" ? 4 : 0).mb(part === "spaces" ? 0 : 4).mx(3)
+      .rounded(6).border_1().border_color(t.border)
+      // the same base as the terminals: their surface paints ~78% over the
+      // wallpaper (terminal_opacity 0.68, measured), so the cards match
+      .bg(t.background + "c7");
     const chevron = (id, label, action) => div().id(id).px(6).rounded(4).text_size(12.5).text_color(t.dim)
       .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
-      .hover((st) => st.bg(t.hover).text_color(t.foreground)).on_click(action).child(label);
+      .hover((st) => st.bg(t.hover + "b3").text_color(t.foreground)).on_click(action).child(label);
 
     // Folded, as the old herdr's rail: each space by its number on its
     // machine (other machines open with ▾ and their position), then each
     // agent by its space's first letter; a status mark after each; » last.
     if (this.width < 60) {
       const cell = (id, label, st, on, action) => h_flex().id(id).w_full().h(19).px(4).gap(1).justify_center().items_center()
-        .rounded(3).text_size(12.5).bg(on ? t.selected : t.chrome)
-        .when(!on, (el) => el.hover((s) => s.bg(t.hover))).on_mouse_down("left", (_e, cx) => cx.stop_propagation()).on_click(action)
+        .rounded(3).text_size(12.5).bg(on ? t.selected + "b3" : t.background + "4d")
+        .when(!on, (el) => el.hover((s) => s.bg(t.hover + "b3"))).on_mouse_down("left", (_e, cx) => cx.stop_propagation()).on_click(action)
         .child(div().text_color(on ? t.accent : t.muted).when(on, (el) => el.font_bold()).child(label))
         .child(div().text_size(12.5).text_color(st ? tint(st) : t.dim).child(mark(st)));
       if (part === "spaces") {
@@ -475,43 +507,54 @@ export default class TuiSide extends View {
             .text_color(m.layout === "unavailable" ? t.blocked : t.accent).child(`▾${mi + 1}`)];
           return [...head, ...own.map((s, i) => cell(`cr-${s.id}`, String(i + 1), s.status, s.active, () => run("space.select", { id: s.id })))];
         });
-        return sized(v_flex().size_full().px(3).pt(4).bg(t.chrome + "b3"))
-          .child(v_flex().id("cr-spaces").flex_1().min_h(0).overflow_y_scroll().children(rail));
+        return sized(v_flex().size_full())
+          .child(card(v_flex().px(3).pt(4))
+            .child(v_flex().id("cr-spaces").flex_1().min_h(0).overflow_y_scroll().children(rail)));
       }
-      return sized(v_flex().size_full().px(3).pt(6).bg(t.chrome + "b3"))
-        .child(v_flex().id("cr-agents").flex_1().min_h(0).overflow_y_scroll()
-          .children(ags.map((a) => cell(`cra-${a.address}`, [...(a.space_name || "?")][0] ?? "?", a.status, a.focused,
-            () => { run("space.select", { id: a.space }); run("pane.focus", { pane: a.pane }); }))))
-        .child(h_flex().flex_none().py(4).justify_center().child(chevron("cs-unfold", "»", () => this.unfold())));
+      const unf = h_flex().flex_none().py(4).justify_center().child(chevron("cs-unfold", "»", () => this.unfold()));
+      return sized(v_flex().size_full())
+        .child(card(v_flex().px(3).pt(6))
+          .child(v_flex().id("cr-agents").flex_1().min_h(0).overflow_y_scroll()
+            .children(ags.map((a) => cell(`cra-${a.address}`, [...(a.space_name || "?")][0] ?? "?", a.status, a.focused,
+              () => { run("space.select", { id: a.space }); run("pane.focus", { pane: a.pane }); })))
+            .child(unf)));
     }
 
     if (part === "spaces") {
-      return sized(v_flex().size_full().bg(t.chrome + "b3").text_color(t.foreground))
-        .child(v_flex().id("cs-spaces").flex_1().min_h(0).pb(8).overflow_y_scroll()
-          // A release outside any space cancels the drag.
-          .on_mouse_up("left", (_e, cx) => { if (this.pressed !== null) { this.pressed = null; this.over = null; cx.notify(); } })
-          .children(machines().map(machine)));
+      return sized(v_flex().size_full())
+        .child(card(v_flex().flex_1().min_h(0))
+          .child(v_flex().id("cs-spaces").flex_1().min_h(0).overflow_y_scroll()
+            // A release outside any space cancels the drag.
+            .on_mouse_up("left", (_e, cx) => { if (this.pressed !== null) { this.pressed = null; this.over = null; cx.notify(); } })
+            .children(machines().map(machine))));
     }
-    return sized(v_flex().size_full().bg(t.chrome + "b3").text_color(t.foreground))
-      .child(v_flex().id("cs-agents").flex_1().min_h(0).pb(6).overflow_y_scroll()
-        .child(section("Agents", h_flex().gap(10).items_center()
-          .child(div().text_color(waiting ? t.blocked : t.dim).child(waiting ? `${waiting} need you` : `${ags.length}`))
-          .child(div().id("ca-sort").px(6).rounded(4).text_color(t.muted).hover((st) => st.bg(t.hover).text_color(t.foreground))
-            .on_click((_e, cx) => this.setSort(this.sort === "priority" ? "spaces" : "priority", cx)).child(this.sort))))
-        .when(ags.length === 0, (el) => el.child(div().px(16).py(6).text_size(12.5).text_color(t.dim)
-          .child("No agents here yet. Start one from the picker (ctrl-b w) or ctrl-b c.")))
-        .children(ags.map(agent)))
-      // What the old top line showed: the usage numbers, then the shown
-      // space's machine and time, with « at the right to fold the sidebar.
-      .child(v_flex().flex_none().px(10).pt(2).pb(6).gap(3)
-        .when(Boolean(this.usage.length), (el) => el.child(this.usageLine(t)))
-        .child(h_flex().items_center().justify_between()
-          .child(div().min_w(0).truncate().text_size(12.5).text_color(t.dim)
-            .child((() => {
-              const shown = list.find((x) => x.active);
-              const where = shown?.machine != null ? this.hosts[shown.machine] ?? shown.machine : this.host;
-              return [where, clock()].filter(Boolean).join("  ·  ");
-            })()))
-          .child(chevron("cs-fold", "«", () => this.fold()))));
+    return sized(v_flex().size_full())
+      .child(card(v_flex().flex_1().min_h(0))
+        .child(v_flex().id("cs-agents").flex_1().min_h(0).overflow_y_scroll()
+          // The agents half wears the same stacked sub-panels as the spaces
+          // half: one raised, 30%-transparent panel holding the rows, 3px
+          // from the card's edges on every side.
+          .child(v_flex().mx(3).mt(3).mb(3).rounded(6)
+            .child(h_flex().px(10).py(5).gap(8).items_center().rounded_t(6)
+              .child(h_flex().flex_1().gap(10).items_center()
+                .child(div().text_size(12.5).font_bold().text_color(t.dim).child("AGENTS"))
+                .child(div().text_color(waiting ? t.blocked : t.dim).child(waiting ? `${waiting} need you` : `${ags.length}`)))
+              .child(div().id("ca-sort").px(6).rounded(4).text_size(12.5).text_color(t.muted).hover((st) => st.bg(t.hover + "b3").text_color(t.foreground))
+                .on_click((_e, cx) => this.setSort(this.sort === "priority" ? "spaces" : "priority", cx)).child(this.sort)))
+            .when(ags.length === 0, (el) => el.child(div().px(10).py(6).text_size(12.5).text_color(t.dim)
+              .child("No agents here yet. Start one from the picker (ctrl-b w) or ctrl-b c.")))
+            .children(ags.map(agent))))
+        // What the old top line showed: the usage numbers, then the shown
+        // space's machine and time, with « at the right to fold the sidebar.
+        .child(v_flex().flex_none().px(10).pt(2).pb(6).gap(3)
+          .when(Boolean(this.usage.length), (el) => el.child(this.usageLine(t)))
+          .child(h_flex().items_center().justify_between()
+            .child(div().min_w(0).truncate().text_size(12.5).text_color(t.dim)
+              .child((() => {
+                const shown = list.find((x) => x.active);
+                const where = shown?.machine != null ? this.hosts[shown.machine] ?? shown.machine : this.host;
+                return [where, clock()].filter(Boolean).join("  ·  ");
+              })()))
+            .child(chevron("cs-fold", "«", () => this.fold())))));
   }
 }

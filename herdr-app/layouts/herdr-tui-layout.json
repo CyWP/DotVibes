@@ -14,15 +14,11 @@
     "image": "backgrounds/herdr-tui-layout-bg.jpg",
     "fit": "cover"
   },
-  "terminal_opacity": 0.7,
+  "terminal_opacity": 0.68,
   "terminal_padding": [
     6,
     10
   ],
-  "divider": {
-    "width": 1,
-    "color": "border"
-  },
   "children": [
     {
       "id": "sidebar",
@@ -32,6 +28,7 @@
       },
       "min": 40,
       "max": 480,
+      "gap": 5,
       "children": [
         {
           "id": "side-spaces",
@@ -70,10 +67,10 @@
       "type": "column",
       "resizable": false,
       "padding": [
-        3,
-        6
+        4,
+        3
       ],
-      "gap": 3,
+      "gap": 5,
       "children": [
         {
           "id": "tabsbar",

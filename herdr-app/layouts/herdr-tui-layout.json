@@ -1,0 +1,113 @@
+{
+  "id": "root",
+  "type": "row",
+  "titlebar": "none",
+  "traffic_lights": [
+    14,
+    14
+  ],
+  "theme": "herdr-tui-layout",
+  "font": "Menlo",
+  "font_size": 12.5,
+  "ui_font": "Menlo",
+  "background": {
+    "image": "backgrounds/herdr-tui-layout-bg.jpg",
+    "fit": "cover"
+  },
+  "terminal_opacity": 0.7,
+  "terminal_padding": [
+    6,
+    10
+  ],
+  "divider": {
+    "width": 1,
+    "color": "border"
+  },
+  "children": [
+    {
+      "id": "sidebar",
+      "type": "column",
+      "size": {
+        "px": 280
+      },
+      "min": 40,
+      "max": 480,
+      "children": [
+        {
+          "id": "side-spaces",
+          "type": "block",
+          "window_drag": true,
+          "size": {
+            "weight": 1
+          },
+          "min": 80,
+          "content": {
+            "mod": "herdr-tui-layout-side",
+            "props": {
+              "part": "spaces"
+            }
+          }
+        },
+        {
+          "id": "side-agents",
+          "type": "block",
+          "window_drag": true,
+          "size": {
+            "weight": 1
+          },
+          "min": 80,
+          "content": {
+            "mod": "herdr-tui-layout-side",
+            "props": {
+              "part": "agents"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "work",
+      "type": "column",
+      "padding": [
+        3,
+        6
+      ],
+      "gap": 3,
+      "children": [
+        {
+          "id": "tabsbar",
+          "type": "block",
+          "window_drag": true,
+          "size": {
+            "px": 2
+          },
+          "content": {
+            "mod": "herdr-tui-layout-tabs"
+          }
+        },
+        {
+          "id": "main",
+          "type": "block",
+          "content": {
+            "tab": "active",
+            "pane": {
+              "gap": 6,
+              "radius": 6,
+              "lone": true,
+              "border": {
+                "width": 1,
+                "color": "border"
+              },
+              "focus": {
+                "width": 1,
+                "color": "accent"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "terminal_menu": "herdr-tui-layout-menu",
+  "preview": "layouts/herdr-tui-layout.png"
+}

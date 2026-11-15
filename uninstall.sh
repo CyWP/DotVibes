@@ -27,7 +27,7 @@ while [ -L "$SOURCE" ]; do
 done
 ROOT=$(cd -P "$(dirname "$SOURCE")" && pwd)
 
-COMPONENTS=(nvim ghostty herdr agents tmux opencode appearance fonts bash bin slides)
+COMPONENTS=(nvim ghostty herdr-tui agents tmux opencode appearance fonts bash bin herdr-app)
 
 # --- helpers ---------------------------------------------------------------------
 is_ours() { # $1 = path: true iff a symlink pointing into this repo
@@ -88,7 +88,7 @@ undo_component() {
   case "$1" in
     nvim)     undo_default "$HOME/.config/nvim" ;;
     ghostty)  undo_default "$HOME/.config/ghostty/config.ghostty" ;;
-    herdr)    undo_default "$HOME/.config/herdr/config.toml" ;;
+    herdr-tui) undo_default "$HOME/.config/herdr/config.toml" ;;
     tmux)     undo_default "$HOME/.tmux.conf" ;;
     opencode) undo_default "$HOME/.config/opencode/cli.json" ;;
     agents)
@@ -118,17 +118,13 @@ undo_component() {
       if [ -f "$IMG" ]; then rm "$IMG"; echo "-> removed $IMG"; fi
       ;;
     fonts)
-      local d f b name fam_dir fam
-      for fam_dir in "$ROOT/fonts"/*/; do
-        [ -d "$fam_dir" ] || continue
-        fam=$(basename "$fam_dir")
-        d="$HOME/.local/share/fonts/$fam"
-        for f in "$d"/*; do [ -e "$f" ] || [ -L "$f" ] || continue; remove_link "$f"; done
-        for b in "$HOME/.local/share/fonts-backups/$fam"/*; do
-          [ -e "$b" ] || continue
-          name="${b##*/}"; name="${name%.*}"
-          restore_from_dir "$name" "$HOME/.local/share/fonts-backups/$fam" "$d/$name"
-        done
+      local d f b name
+      d="$HOME/.local/share/fonts/Monaspace Argon"
+      for f in "$d"/*; do [ -e "$f" ] || [ -L "$f" ] || continue; remove_link "$f"; done
+      for b in "$HOME/.local/share/fonts-backups/Monaspace Argon"/*; do
+        [ -e "$b" ] || continue
+        name="${b##*/}"; name="${name%.*}"
+        restore_from_dir "$name" "$HOME/.local/share/fonts-backups/Monaspace Argon" "$d/$name"
       done
       if command -v fc-cache > /dev/null 2>&1; then fc-cache -f > /dev/null 2>&1; echo "-> fontconfig cache refreshed"; fi
       ;;
@@ -178,11 +174,78 @@ undo_component() {
         restore_from_dir "$name" "$HOME/.local/bin-backups" "$HOME/.local/bin/$name"
       done
       ;;
-    slides)
-      # the marp-slides command and marp-build links are already swept by the
-      # agents / bin topics; only the theme CSS is slides-specific
-      undo_default "$HOME/.config/marp/marp.css"
-      undo_default "$HOME/.config/marp/marp-dark.css"
+    herdr-app)
+      # undo herdr-app/install.sh: the copies it made, what --force moved
+      # aside, and the keys.json section it merged (the newest keys.json
+      # backup its installer made stays in backups/ for reference)
+      local app="$HOME/.config/herdr-app" name="herdr-tui-layout" b p
+      if [ ! -d "$app" ]; then
+        echo "-> no $app — nothing to undo"
+      else
+        for p in "layouts/$name.json" "layouts/$name.png" "themes/$name.json"; do
+          if [ -e "$app/$p" ]; then rm "$app/$p"; echo "-> removed $app/$p"; fi
+        done
+        for d in "$app"/mods/"$name"-*; do
+          [ -d "$d" ] || continue
+          rm -rf "$d"; echo "-> removed $d"
+        done
+        # what --force moved aside before copying: restore the newest backup
+        b=$(ls -1d -- "$app/backups/$name"-* 2>/dev/null | LC_ALL=C sort | tail -1)
+        if [ -n "$b" ]; then
+          while IFS= read -r p; do
+            rel="${p#"$b"/}"
+            mkdir -p "$app/$(dirname "$rel")"
+            mv "$p" "$app/$rel"
+            echo "-> restored $app/$rel"
+          done < <(find "$b" -type f)
+        fi
+        # keys.json: drop the section our installer merged into it, revert
+        # the keys parity (herdr-app/install.sh): remove the herdr-nvim alt-
+        # twins and restore the stock defaults it dropped. The table lives
+        # in the repo's herdr-app/scripts/keys-parity.json; with the folder
+        # gone, only the section is removed.
+        if [ -f "$app/keys.json" ]; then
+          cp -p "$app/keys.json" "$app/backups/keys.json.bak-uninstall-$(date +%Y%m%d-%H%M%S)"
+          parity="$ROOT/herdr-app/scripts/keys-parity.json"
+          [ -f "$parity" ] || parity=""
+          python3 -I - "$app/keys.json" "$name" "$parity" <<'PY'
+import json, os, sys
+path, name, parity_path = sys.argv[1], sys.argv[2], sys.argv[3]
+data = json.load(open(path))
+sec = "layout:" + name
+changed = False
+if sec in data:
+    del data[sec]
+    changed = True
+    print("-> removed the [" + sec + "] section from keys.json")
+else:
+    print("-> no [" + sec + "] section in keys.json")
+if parity_path:
+    parity = json.load(open(parity_path))
+    g = data.get('global', {})
+    for key, action in parity.get('linux_twins', {}).items():
+        if g.get(key) == action:
+            del g[key]
+            changed = True
+            print("-> removed " + key)
+    for key, action in parity.get('remove_defaults', {}).items():
+        if key not in g:
+            g[key] = action
+            changed = True
+            print("-> restored default " + key)
+if changed:
+    tmp = path + ".tmp"
+    json.dump(data, open(tmp, "w"), indent=2)
+    os.replace(tmp, path)
+PY
+        fi
+        # the usage hook (--usage-hook) edits ~/.claude/settings.json: by hand
+        if [ -d "${XDG_DATA_HOME:-$HOME/.local/share}/$name" ]; then
+          echo "warn: ${XDG_DATA_HOME:-$HOME/.local/share}/$name (usage hook) left in place;" \
+            "remove it and its statusLine entry in ~/.claude/settings.json by hand if wanted" >&2
+        fi
+        echo "-> note: herdr-nvim is managed by its own upstream script — not touched here"
+      fi
       ;;
   esac
 }

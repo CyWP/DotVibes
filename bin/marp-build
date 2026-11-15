@@ -3,17 +3,17 @@
 #
 #   marp-build <file.md> [output] [-t pdf|html] [-T light|dark] [--bundle]
 #              [--logo FILE] [--logo-corner tr|tl|bl|br[,wm]] [--background FILE]
-#              [--author NAME|none]
+#              [--author NAME|none] [--date DD/MM/YY|none]
 #
 # The deck is plain content markdown (`# Title`, `---` between slides, ...). Everything
 # else is added here, automatically, in a temp copy (the deck is never touched):
 #   - front matter defaults: marp, theme dotvibes, paginate (anything the deck
 #     sets itself wins)
-#   - footer "<author> <deck title>" on every slide except the cover; the title is
+#   - footer "<author> <date> <deck title>" on every slide except the cover; the title is
 #     the first `# ` heading; author = `author:` in front matter, --author,
 #     $MARP_AUTHOR or `git config user.name` (none = omit)
 #   - cover: the first slide, when it has a `# ` heading, becomes the cover (no
-#     footer/logo/page number, a row of palette squares, a subtle author byline)
+#     footer/logo/page number, a row of palette squares, a subtle author + date byline); date = today, --date DD/MM/YY overrides
 #   - nothing else: logos and backgrounds are optional ARGUMENTS only, never
 #     defaults. --logo FILE adds a logo (never on the cover), --logo-corner
 #     tr|tl|bl|br[,wm] picks its corner (default tr; wm = faded watermark), and
@@ -26,9 +26,9 @@ tmp="" work="" posters=""
 cleanup() { [ -z "$tmp" ] || rm -f "$tmp"; [ -z "$work" ] || rm -rf "$work"; [ -z "$posters" ] || rm -rf "$posters"; }
 trap cleanup EXIT
 
-usage() { echo "usage: marp-build <file.md> [output] [-t pdf|html] [-T light|dark] [--bundle] [--logo FILE] [--logo-corner tr|tl|bl|br[,wm]] [--background FILE] [--author NAME|none]" >&2; exit 2; }
+usage() { echo "usage: marp-build <file.md> [output] [-t pdf|html] [-T light|dark] [--bundle] [--logo FILE] [--logo-corner tr|tl|bl|br[,wm]] [--background FILE] [--author NAME|none] [--date DD/MM/YY|none]" >&2; exit 2; }
 
-in="" out="" type="" mode=light bundle=0 logo="" corner=tr background="" author=""
+in="" out="" type="" mode=light bundle=0 logo="" corner=tr background="" author="" date=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -t|--type) [ $# -ge 2 ] || usage; type="$2"; shift 2 ;;
@@ -38,6 +38,7 @@ while [ $# -gt 0 ]; do
     --logo-corner) [ $# -ge 2 ] || usage; corner="$2"; shift 2 ;;
     --background) [ $# -ge 2 ] || usage; background="$2"; shift 2 ;;
     --author) [ $# -ge 2 ] || usage; author="$2"; shift 2 ;;
+    --date) [ $# -ge 2 ] || usage; date="$2"; shift 2 ;;
     -h|--help) usage ;;
     -*) echo "marp-build: unknown option $1" >&2; usage ;;
     *) if [ -z "$in" ]; then in="$1"; elif [ -z "$out" ]; then out="$1"; else usage; fi; shift ;;
@@ -97,10 +98,10 @@ tmp="$(dirname "$in")/.marp-build.$$.$(basename "$in")"
 cp "$in" "$tmp"
 in="$tmp"
 posters=$(mktemp -d)
-python3 -I - "$in" "$src_dir" "$posters" "$want_video" "$theme_name" "$logo" "$author" "$corner" "$background" <<'PY'
+python3 -I - "$in" "$src_dir" "$posters" "$want_video" "$theme_name" "$logo" "$author" "$corner" "$background" "$date" <<'PY'
 import csv, html, os, re, shutil, subprocess, sys
 
-path, src_dir, posters, want_video, theme_name, logo_cli, author_cli, corner_cli, bg_cli = sys.argv[1:10]
+path, src_dir, posters, want_video, theme_name, logo_cli, author_cli, corner_cli, bg_cli, date_cli = sys.argv[1:11]
 text = open(path, encoding="utf-8").read()
 
 def resolve(p):
@@ -147,14 +148,20 @@ if not author:
 if author.lower() == "none": author = ""
 title = keys.get("title") or first_title(body)
 
+# date: today (DD/MM/YY) unless --date DD/MM/YY; `none` hides it
+import datetime
+date = date_cli or datetime.date.today().strftime("%d/%m/%y")
+if date.lower() == "none": date = ""
+elif not re.fullmatch(r'\d{2}/\d{2}/\d{2}', date): sys.exit("marp-build: --date must be DD/MM/YY (or none)")
+else:
+    try: datetime.datetime.strptime(date, "%d/%m/%y")
+    except ValueError: sys.exit(f"marp-build: invalid date {date}")
+
 add = []
 if "marp" not in keys: add.append("marp: true")
 if "paginate" not in keys: add.append("paginate: true")
-if "footer" not in keys and (author or title):
-    parts = []
-    if author: parts.append(html.escape(author))
-    if title: parts.append('<span class="ft-title%s">' % ("" if author else " ft-only") + html.escape(title) + '</span>')
-    add.append("footer: " + yq(" ".join(parts)))
+if "footer" not in keys and (author or title or date):
+    add.append("footer: " + yq(" \u00b7 ".join(html.escape(x) for x in (author, date, title) if x)))
 
 # logo and background: ONLY from the --logo / --background arguments (paths as given,
 # relative to the current directory); never a default, env var or deck setting
@@ -187,7 +194,8 @@ end = first_slide_end(body)
 first, rest = body[:end], body[end:]
 if re.search(r'^# ', first, re.M) and "_class" not in first:
     # blank line after the HTML block, or the following `---` is swallowed by it
-    byline = f'\n<p class="byline">{html.escape(author)}</p>\n\n' if author else "\n"
+    bl = " \u00b7 ".join(html.escape(x) for x in (author, date) if x)
+    byline = f'\n<p class="byline">{bl}</p>\n\n' if bl else "\n"
     first = ("\n<!-- _class: lead cover -->\n<!-- _header: '' -->\n<!-- _footer: '' -->\n"
              + first.rstrip("\n") + "\n" + byline)
 body = first + rest

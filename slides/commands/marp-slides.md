@@ -33,21 +33,22 @@ author name, page number, colours, light/dark) is done automatically by
      Open a background image first: if it is busy or dark behind dark text,
      say so and suggest a lighter one; never fix it by recolouring text.
    - `--author NAME|none` only if the user wants a different author (default:
-     their git name).
+     their git name). `--date DD/MM/YY|none` only if the user wants a date other
+     than today (default: today's date).
    - Report the output path. If `marp-build` fails because marp or Chrome is
      missing, say so rather than installing anything.
 
 ## What marp-build adds (do NOT write these yourself)
 
-Front matter (`marp`, `theme`, `paginate`), the footer (author + deck title,
-every slide but the cover), the cover treatment, the author byline,
+Front matter (`marp`, `theme`, `paginate`), the footer (author, date, deck title,
+every slide but the cover), the cover treatment, the author + date byline,
 page numbers and the coloured squares. The deck title is taken from the first
 `# ` heading, so make slide 1 exactly:
 
 ```markdown
 # Deck title
 
-## Subtitle (topic, or date)
+## Subtitle (the topic; the date is added automatically)
 ```
 
 (A first slide with a `# ` heading becomes the cover automatically; use `# `

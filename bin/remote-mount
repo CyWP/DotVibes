@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# remote-mount — mount every connected external (hotplug/USB) drive, e.g. when
+# logged in over ssh where the desktop session never auto-mounted it.
+#   remote-mount        mount all unmounted external filesystems
+#   remote-mount -u     unmount all external filesystems
+# Uses udisksctl (-> /media/$USER/<label>, no sudo); falls back to
+# sudo mount on /mnt/<label> when udisks is unavailable.
+set -uo pipefail
+
+unmount=0
+[ "${1:-}" = "-u" ] && unmount=1
+
+# external = hotplug flag or usb transport; keep only partitions / bare
+# filesystems that carry a usable fstype. -F'[ ]' keeps empty columns
+# (e.g. no mountpoint) from collapsing; lsblk -r escapes spaces as \x20.
+mapfile -t devs < <(
+  lsblk -rno PATH,TYPE,FSTYPE,MOUNTPOINT,HOTPLUG,TRAN,SIZE,LABEL |
+    awk -F'[ ]' '($5 == 1 || $6 == "usb") && ($2 == "part" || $2 == "disk") && $3 != "" {print $1 "|" $3 "|" $4 "|" $7 "|" $8}'
+)
+
+if [ "${#devs[@]}" -eq 0 ]; then
+  echo "no external drives with a filesystem found"
+  exit 0
+fi
+
+rc=0
+for entry in "${devs[@]}"; do
+  IFS='|' read -r dev fstype mp size label <<<"$entry"
+  label=$(printf '%b' "$label"); mp=$(printf '%b' "$mp")
+  echo "found: $dev  label=${label:--}  fs=$fstype  size=$size  ${mp:+mounted at }${mp:-not mounted}"
+  case "$fstype" in
+    swap) continue ;;
+    crypto_LUKS) echo "skip $dev: LUKS-encrypted (unlock first: udisksctl unlock -b $dev)"; continue ;;
+  esac
+
+  if [ "$unmount" -eq 1 ]; then
+    [ -z "$mp" ] && continue
+    if command -v udisksctl >/dev/null; then udisksctl unmount -b "$dev" || rc=1
+    else sudo umount "$dev" || rc=1; fi
+    continue
+  fi
+
+  if [ -n "$mp" ]; then
+    echo "already mounted: $dev -> $mp"
+    continue
+  fi
+  if command -v udisksctl >/dev/null && udisksctl mount -b "$dev"; then
+    continue
+  fi
+  target="/mnt/${label:-$(basename "$dev")}"
+  target=${target// /_}
+  echo "udisksctl unavailable/failed, mounting $dev on $target with sudo"
+  sudo mkdir -p "$target" &&
+    sudo mount -o "uid=$(id -u),gid=$(id -g)" "$dev" "$target" 2>/dev/null ||
+    sudo mount "$dev" "$target" || rc=1
+done
+exit "$rc"

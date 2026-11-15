@@ -115,12 +115,16 @@ Top to bottom:
   `shift-t` rename tab; `shift-1..9` space N, `up` / `down` previous /
   next space, `left` / `right` back / forward through your recent spaces
   (a new jump drops the forward ones; closed spaces are skipped),
-  `shift-n` new space,
-  `shift-w` rename space, `shift-d` close space, `w` space picker (one row
-  per space: color chip, name, agent status; Enter or a click goes there),
+  `shift-n` new space, `r` or `shift-w` rename space, `shift-d` close
+  space, `w` space picker (one row
+  per space: name and agent status, worktrees nested under their repo's
+  space; Enter or a click goes there),
   `shift-g` new
-  worktree; `v` split right, `-` split down, `x` close pane, `z` or `m` zoom,
-  `h j k l` move between panes; `b` sidebar; `shift-/` help; `s` settings;
+  worktree; `shift-h` / `shift-j` / `shift-k` / `shift-l` split left /
+  down / up / right (left and up split right or down and swap, since
+  pane.split only makes right/down), `x` close pane, `z` or `m` zoom,
+  `h j k l` move between panes; `b` hide the sidebar, `shift-b` fold it
+  to its strip and back; `shift-/` help; `s` settings;
   `alt-g` lazygit, `alt-b` btop, `alt-f` yazi, each in a floating terminal
   (80% / 90% of the window) that closes when the program exits.
 - The status line's numbers refresh every 15s; machine states and hostnames
@@ -145,8 +149,9 @@ Top to bottom:
   `setAgentOrder`, `space.select`, `space.move`, `space.new`, `pane.focus`,
   `layout.resize` (fold to 40, unfold to the width it had, kept in
   `localStorage`), `openOverlay`; polls `hc machine ls --json` for connection
-  states; listens on `nextCommand()` for `agent-N`, `recent-back`,
-  `recent-forward`, `rename-space`, `new-worktree` (spaces copy; the
+  states, and its git probe is shared as `side.git` for the picker's
+  worktree nesting; listens on `nextCommand()` for `agent-N`, `recent-back`,
+  `recent-forward`, `split-left`, `split-up`, `fold-toggle`, `rename-space`, `new-worktree` (spaces copy; the
   recents pair walk a back/forward list of spaces the mod tracks in
   `render()`) and `picker`, `help`, `rename-tab`,
   `popup-lazygit|btop|yazi` (agents copy). The agents copy also runs the

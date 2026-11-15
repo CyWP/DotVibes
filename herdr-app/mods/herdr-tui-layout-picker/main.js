@@ -1,8 +1,9 @@
 // Modified from Herdr's shipped `picker` mod (Apache-2.0).
 // Changes: draws its own rounded box (opened with frame: "none"); a spaces
 // mode (the side mod opens it with props {mode: "spaces"}): each row is a
-// space — color chip, name, agent status — Enter or a click goes there,
-// the new-space rows stay, ctrl+d does nothing.
+// space — name and agent status — Enter or a click goes there; a worktree
+// nests under its repo's space (the side mod's shared git probe decides).
+// The new-space rows stay, ctrl+d does nothing.
 // Go to a tab. Drops from the Terminals layout's space chip (popup, at: "top"). Spaces with
 // something that needs you come first, quiet spaces (no agent running)
 // fold into "earlier". Type to filter, ↑/↓ and Enter to go, ctrl+d to close
@@ -69,9 +70,24 @@ export default class Picker extends View {
   rows() {
     const f = this.filter.toLowerCase();
     if (this.spacesMode) {
-      const out = spaces()
-        .filter((w) => !f || w.name.toLowerCase().includes(f))
-        .map((w) => ({ kind: "wsp", w }));
+      // Worktrees nest under their repo's space, as the sidebar draws them:
+      // the side mod probes git into shared "side.git" (this mod runs no git
+      // itself); a space whose repo's .git isn't in its own checkout goes
+      // under the space holding that checkout.
+      const git = shared("side.git") ?? {};
+      const linked = (s) => { const g = git[s.id]; return Boolean(g) && g.common !== `${g.top}/.git`; };
+      const common = (s) => git[s.id]?.common;
+      const own = spaces().filter((w) => !f || w.name.toLowerCase().includes(f));
+      const tops = own.filter((s) => !linked(s));
+      const parent = (w) => tops.find((p) => common(p) === common(w) && git[p.id].top + "/.git" === common(w))
+        ?? tops.find((p) => common(p) === common(w));
+      const out = [];
+      for (const s of own) {
+        if (linked(s) && parent(s)) continue; // drawn under its repo
+        out.push({ kind: "wsp", w: s });
+        own.filter((w) => linked(w) && parent(w) === s)
+          .forEach((w) => out.push({ kind: "wsp", w, under: true }));
+      }
       out.push({ kind: "space", machine: null });
       for (const m of this.machines) out.push({ kind: "space", machine: m });
       return out;
@@ -214,6 +230,7 @@ export default class Picker extends View {
           .id(`pk-w-${r.w.id}`)
           .mx(4)
           .px(10)
+          .when(r.under, (el) => el.pl(26))
           .h(32)
           .rounded(7)
           .gap(10)
@@ -222,7 +239,7 @@ export default class Picker extends View {
           .when(on, (el) => el.bg(t.hover))
           .hover((s) => s.bg(t.hover))
           .on_click(() => this.go(r))
-          .child(h_flex().size(18).rounded(5).bg(spaceColor(t, r.w)).items_center().justify_center().text_size(10.5).font_bold().text_color("#ffffff").child([...r.w.name][0]?.toUpperCase() ?? "?"))
+          .when(r.under, (el) => el.child(div().flex_none().w(10).text_color(t.dim).child("└")))
           .child(div().flex_1().truncate().text_color(t.foreground).when(r.w.active, (d) => d.font_semibold()).child(r.w.name))
           .when(r.w.status === "blocked", (el) => el.child(div().text_size(11).text_color(t.blocked).child("needs you")))
           .when(r.w.status === "done", (el) => el.child(div().text_size(11).text_color(t.done).child("finished")))

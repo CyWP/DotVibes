@@ -2,8 +2,26 @@
 
 ## Unreleased
 
+- **Changed:** splitting moved onto the shift row: `ctrl-b shift-h` /
+  `shift-j` / `shift-k` / `shift-l` split left / down / up / right
+  (`ctrl-b v` and `ctrl-b -` are gone). `pane.split` only makes right and
+  down, so the side mod fakes left and up: split that way, then swap the
+  old pane with its new neighbour.
+
+- **New:** the space picker nests worktree spaces under their repo's
+  space (it reads the side mod's git probe from shared `side.git` and
+  runs no git itself).
+
+- **New:** `ctrl-b shift-b` folds the sidebar to its strip and back
+  (`ctrl-b b` still hides it), and the sidebar is folded to the strip
+  now; the width stays remembered, so it stays folded across restarts
+  until you unfold it.
+
+- **New:** `ctrl-b r` also renames the shown space (same as
+  `ctrl-b shift-w`).
+
 - **Changed:** `ctrl-b w` opens the picker as a space picker now: one row
-  per space — its color chip, name and agent status — and Enter or a
+  per space — its name and agent status — and Enter or a
   click goes there (it was the tab picker, grouping each space's tabs).
   The picker mod keeps its tab mode; only what `ctrl-b w` opens changed.
 

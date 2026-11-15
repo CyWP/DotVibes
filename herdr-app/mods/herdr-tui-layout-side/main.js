@@ -6,7 +6,7 @@
 // context, the account's 5-hour and weekly use, the machine and the time.
 import { View, div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { spaces, agents, machines, panes, run, theme, home, props, setAgentOrder, openOverlay, hc, nextCommand, exec, focused, notify } from "herdr";
+import { spaces, agents, machines, panes, run, theme, home, props, setAgentOrder, openOverlay, hc, nextCommand, exec, focused, notify, setShared } from "herdr";
 
 // herdr-tui-layout's rename dialog (herdr-tui-layout-prompt, which draws its own rounded box)
 // instead of Herdr's, whose square background pokes out of the app's frame.
@@ -127,7 +127,8 @@ export default class TuiSide extends View {
       const next = top?.code === 0 && common?.code === 0 ? { top: top.stdout.trim(), common: common.stdout.trim() } : null;
       if (JSON.stringify(next) !== JSON.stringify(this.git[s.id] ?? null)) { this.git[s.id] = next; changed = true; }
     }
-    if (changed) cx.notify();
+    // The space picker nests worktrees from this map (it runs no git itself).
+    if (changed) { setShared("side.git", this.git); cx.notify(); }
   }
 
   foldRepo(id, cx) {
@@ -164,6 +165,31 @@ export default class TuiSide extends View {
         if (c === "rename-space" && (props()?.part ?? "spaces") === "spaces") {
           const sp = spaces().find((x) => x.active);
           if (sp) rename("space", sp.id);
+        }
+        if (c === "fold-toggle" && (props()?.part ?? "spaces") === "spaces") {
+          // ctrl-b shift-b: fold the sidebar to its strip, or bring it back.
+          if ((this.width ?? 280) <= 48) this.unfold(); else this.fold();
+        }
+        if ((c === "split-left" || c === "split-up") && (props()?.part ?? "spaces") === "spaces") {
+          // pane.split only makes right/down, so split that way and swap the
+          // old pane with its new neighbour: the new pane ends up left / above.
+          // The swap needs the new pane on screen, so give the split a moment.
+          const from = panes().find((x) => x.focused)?.pane;
+          if (from) {
+            const dir = c === "split-left" ? "right" : "down";
+            const ids = new Set(panes().map((x) => x.pane));
+            run("pane.split", { direction: dir, pane: from });
+            // Trading the old pane with the new one pushes the new pane to
+            // the other side (right→left, down→up). Poll for the new pane —
+            // usually the next frame, at most ~400ms — then swap the exact
+            // pair by id.
+            let made = null;
+            for (let i = 0; i < 40 && !made; i++) {
+              await cx.sleep(10);
+              made = panes().map((x) => x.pane).find((x) => !ids.has(x));
+            }
+            if (made) run("pane.swap", { pane: from, target: made });
+          }
         }
         if ((c === "recent-back" || c === "recent-forward") && (props()?.part ?? "spaces") === "spaces") {
           // ctrl-b left / right: walk back and forward through the spaces

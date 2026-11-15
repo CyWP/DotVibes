@@ -111,14 +111,15 @@ All on the `ctrl-b` prefix, and only while this layout is showing
 | `shift-1`…`shift-9` | space 1–9 |
 | `up` · `down` | previous space · next space |
 | `left` · `right` | back · forward through your recent spaces |
-| `shift-n` · `shift-w` · `shift-d` | new space · rename space · close space |
-| `w` | space picker (one row per space, Enter or click goes there) |
+| `r` · `shift-w` | rename this space |
+| `shift-n` · `shift-d` | new space · close space |
+| `w` | space picker (spaces, worktrees nested under their repo; Enter or click goes there) |
 | `shift-g` | new worktree of this space's repo |
-| `v` · `minus` | split right · split down |
+| `shift-h` · `shift-j` · `shift-k` · `shift-l` | split left · down · up · right |
 | `x` · `z` | close pane · zoom |
 | `h` `j` `k` `l` | go to the pane left · down · up · right |
 | `alt-1`…`alt-9` | the agent in that row |
-| `b` | sidebar on and off |
+| `b` · `shift-b` | hide the sidebar · fold it to the strip and back |
 | `alt-g` · `alt-b` · `alt-f` | lazygit · btop · yazi, floating; closes when the program quits |
 | `shift-/` · `s` | help · settings |
 

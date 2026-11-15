@@ -9,6 +9,12 @@ return {
   priority = 1000,
   opts = {
     -- everything else stays off (snacks modules are opt-in)
+    dashboard = {
+      -- snacks has its own start screen ("NVIM DASH BOARD" banner) that
+      -- otherwise hijacks startup; dashboard-nvim (plugins/dashboard.lua)
+      -- owns the start page instead.
+      enabled = false,
+    },
     image = {
       enabled = true,
       doc = {

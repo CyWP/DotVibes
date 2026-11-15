@@ -165,6 +165,19 @@ export default class TuiSide extends View {
           const sp = spaces().find((x) => x.active);
           if (sp) rename("space", sp.id);
         }
+        if ((c === "recent-back" || c === "recent-forward") && (props()?.part ?? "spaces") === "spaces") {
+          // ctrl-b left / right: walk back and forward through the spaces
+          // you've been on. Closed spaces on the way are skipped.
+          const step = c === "recent-back" ? -1 : 1;
+          while (this.hist && this.pos + step >= 0 && this.pos + step < this.hist.length) {
+            this.pos += step;
+            if (spaces().some((x) => x.id === this.hist[this.pos])) {
+              this.moving = true;
+              run("space.select", { id: this.hist[this.pos] });
+              break;
+            }
+          }
+        }
         if (c === "new-worktree" && (props()?.part ?? "spaces") === "spaces") {
           const s = spaces().find((x) => x.active);
           if (s) openOverlay({ mod: "herdr-tui-layout-worktree", kind: "dialog", frame: "none", width: 440, height: 260, props: { space: s.id, action: "new" } });
@@ -258,6 +271,20 @@ export default class TuiSide extends View {
   render() {
     const t = theme();
     const list = spaces();
+    // Recent spaces for ctrl-b left / right: a back/forward list with a
+    // position. Each time the shown space changes on its own (not through
+    // recent-back / recent-forward, which set this.moving), the forward
+    // entries are dropped and the space is pushed.
+    const shown = list.find((x) => x.active)?.id;
+    if (shown && shown !== this.shownSpace) {
+      if (!this.moving) {
+        this.hist = (this.hist ?? []).slice(0, (this.pos ?? -1) + 1);
+        if (this.hist[this.hist.length - 1] !== shown) this.hist.push(shown);
+        this.pos = this.hist.length - 1;
+      }
+      this.moving = false;
+      this.shownSpace = shown;
+    }
     const where = (a) => list.findIndex((s) => s.id === a.space);
     const ags = [...agents()].sort(this.sort === "spaces"
       ? (a, b) => where(a) - where(b) || a.tab_index - b.tab_index

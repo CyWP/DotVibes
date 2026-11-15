@@ -112,7 +112,10 @@ Top to bottom:
   rows and the status line still drag it.
 - **Keys** (`keys.json`, only while this layout shows; prefix `ctrl-b`):
   `c` new tab, `n` / `p` next / previous, `shift-x` close tab,
-  `shift-t` rename tab; `shift-1..9` space N, `shift-n` new space,
+  `shift-t` rename tab; `shift-1..9` space N, `up` / `down` previous /
+  next space, `left` / `right` back / forward through your recent spaces
+  (a new jump drops the forward ones; closed spaces are skipped),
+  `shift-n` new space,
   `shift-w` rename space, `shift-d` close space, `w` space picker (one row
   per space: color chip, name, agent status; Enter or a click goes there),
   `shift-g` new
@@ -142,8 +145,10 @@ Top to bottom:
   `setAgentOrder`, `space.select`, `space.move`, `space.new`, `pane.focus`,
   `layout.resize` (fold to 40, unfold to the width it had, kept in
   `localStorage`), `openOverlay`; polls `hc machine ls --json` for connection
-  states; listens on `nextCommand()` for `agent-N`, `rename-space`,
-  `new-worktree` (spaces copy) and `picker`, `help`, `rename-tab`,
+  states; listens on `nextCommand()` for `agent-N`, `recent-back`,
+  `recent-forward`, `rename-space`, `new-worktree` (spaces copy; the
+  recents pair walk a back/forward list of spaces the mod tracks in
+  `render()`) and `picker`, `help`, `rename-tab`,
   `popup-lazygit|btop|yazi` (agents copy). The agents copy also runs the
   status chores: `hostname -s`, `hc machine ls --json` for hostnames, and a
   `sh` loop reading `~/.local/state/herdr-tui-layout/claude/*.json`; starts

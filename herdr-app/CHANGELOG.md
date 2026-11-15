@@ -7,6 +7,12 @@
   click goes there (it was the tab picker, grouping each space's tabs).
   The picker mod keeps its tab mode; only what `ctrl-b w` opens changed.
 
+- **New:** space keys on the arrows. `ctrl-b up`/`down` go to the
+  previous/next space, and `ctrl-b left`/`right` walk back and forward
+  through the spaces you've been on, browser-style: jumping somewhere new
+  drops the forward entries, and closed spaces are skipped. The side mod
+  keeps the list, since Herdr has no command for it.
+
 - **Changed:** the bright peach got brighter. The peach pair in slot 4 is
   now pastel `#ffc7a2` / bright `#ffaf80` (was `#f5a878` — the bright half
   was duller than the person's hand-picked peach `#ffaf80`, so the theme

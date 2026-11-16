@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
-# install.sh — put the DotVibes skill set in place on this machine
+# install.sh — put the DotVibes agent set in place on this machine
 # (one of several components; the top-level install.sh runs this for you).
 #
-#   skills   ~/.claude/skills/<name> — a single link serves both tools:
-#            claude reads it natively and opencode reads it as a global
-#            compatibility source (see opencode docs: skills discovery)
-#
-# NOTE on commands: the repo no longer carries any command files. learn/rmslop
-# (and similar) are default opencode commands and live inside the tool; if own
-# commands are added again, drop the .md files back into agents/commands/ and
-# they get linked into ~/.claude/commands AND ~/.config/opencode/commands
-# (opencode does not read ~/.claude/commands, so it needs its own link).
+# The repo carries one agent folder, agents/, for both tools:
+#   agents/skills/<name>/SKILL.md   skills, installed for claude AND opencode:
+#                                   ~/.claude/skills/<name> — a single link
+#                                   serves both tools: claude reads it
+#                                   natively and opencode reads it as a global
+#                                   compatibility source (skills discovery)
+#   agents/commands/<name>.md       commands, linked into BOTH
+#                                   ~/.claude/commands AND
+#                                   ~/.config/opencode/commands (opencode
+#                                   does not read ~/.claude/commands, so it
+#                                   needs its own link)
 #
 #   1. check claude is on PATH (missing = warning, not a failure)
 #   2. back up any existing real skill/commands (untouched otherwise)

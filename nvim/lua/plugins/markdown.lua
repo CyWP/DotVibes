@@ -16,9 +16,16 @@ return {
       border = true, -- ▄ above / ▀ below: visual gap around headings
       width = "full", -- full-width band like a big Obsidian title
       right_pad = 1,
+      -- one quiet left tick for every level (the list cycles per level),
+      -- instead of the default per-level nerd-font glyphs
+      icons = { "▍" },
     },
     paragraph = {
       left_margin = 2, -- small inset for body text
+    },
+    bullet = {
+      -- plain prose bullets instead of the default dots-and-diamonds
+      icons = { "•", "◦", "▪" },
     },
     code = {
       width = "full", -- code blocks span the window (with their own band)
@@ -27,6 +34,10 @@ return {
     checkbox = {
       left_pad = 3, -- checkbox lists breathe
       right_pad = 1,
+      -- Obsidian's in-progress state: '- [/]' renders as a half-filled circle
+      custom = {
+        in_progress = { raw = "[/]", rendered = "◐", highlight = "RenderMarkdownTodo" },
+      },
     },
     dash = {
       width = "full", -- '---' spans the whole window like a divider

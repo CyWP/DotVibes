@@ -45,3 +45,39 @@ vim.api.nvim_create_autocmd({ "ColorScheme", "FileType" }, {
 for _, ms in ipairs({ 300, 1000, 3000 }) do
   vim.defer_fn(sweep_underlines, ms)
 end
+
+-- render-markdown.nvim (markdown buffers): neutral greys instead of the
+-- loud Diff*/Diagnostic-derived defaults. The plugin links its groups to
+-- DiffText/DiffAdd/... which in gruvbox means a yellow H1 band, a green H2
+-- band, green ticks and green Tip callouts. Here the heading bands become a
+-- grey scale (H1 strongest, fading out by H3) and checkbox + callout colours
+-- are flattened to the same diagnostic grey as above — state and severity
+-- live in the icon's shape/word, not in colour, matching the diagnostics
+-- policy. Registered on ColorScheme (plus one immediate pass) so re-theming
+-- keeps the overrides; the plugin only sets its groups with `default = true`,
+-- so these non-default definitions win wherever the plugin re-links them.
+local function neutral_markdown_render()
+  local BAND = { "#504945", "#3c3836", "#32302f", "#32302f", "#32302f", "#32302f" }
+  for level, bg in ipairs(BAND) do
+    vim.api.nvim_set_hl(0, ("RenderMarkdownH%dBg"):format(level), { bg = bg })
+  end
+  for _, name in ipairs({
+    "RenderMarkdownChecked",
+    "RenderMarkdownUnchecked",
+    "RenderMarkdownTodo",
+    "RenderMarkdownSuccess",
+    "RenderMarkdownInfo",
+    "RenderMarkdownHint",
+    "RenderMarkdownWarn",
+    "RenderMarkdownError",
+  }) do
+    vim.api.nvim_set_hl(0, name, { fg = DIAGNOSTIC_GREY })
+  end
+end
+vim.api.nvim_create_autocmd("ColorScheme", {
+  group = vim.api.nvim_create_augroup("neutral-markdown-render", { clear = true }),
+  pattern = "*",
+  callback = neutral_markdown_render,
+  desc = "Grey heading bands and grey checkbox/callout colours for render-markdown",
+})
+neutral_markdown_render() -- colourscheme may already be loaded when we run

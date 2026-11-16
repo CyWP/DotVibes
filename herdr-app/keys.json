@@ -1,4 +1,17 @@
 {
+  "terminal": {
+    "ctrl-backspace": "send:\u0017",
+    "ctrl-left": "send:\u001bb",
+    "ctrl-right": "send:\u001bf",
+    "ctrl-shift-c": "terminal.copy",
+    "ctrl-shift-v": "terminal.paste",
+    "ctrl-shift-f": "terminal.search",
+    "ctrl-v": "terminal.paste_image",
+    "ctrl-insert": "terminal.copy",
+    "shift-insert": "terminal.paste",
+    "shift-pageup": {"command": "terminal.scroll", "args": {"pages": -1}},
+    "shift-pagedown": {"command": "terminal.scroll", "args": {"pages": 1}}
+  },
   "layout:herdr-tui-layout": {
     "ctrl-b c": "tab.new",
     "ctrl-b n": "tab.next",

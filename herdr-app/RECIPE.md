@@ -154,6 +154,11 @@ Top to bottom:
   to its strip and back; `shift-/` help; `s` settings;
   `alt-g` lazygit, `alt-b` btop, `alt-f` yazi, each in a floating terminal
   (80% / 90% of the window) that closes when the program exits.
+- Install also merges a `terminal` section into the person's keys.json
+  (plain `ctrl-shift-c` / `ctrl-shift-v` copy and paste, `ctrl-insert` /
+  `shift-insert` the same, `ctrl-shift-f` find, `ctrl-v` paste-image,
+  `ctrl-left` / `ctrl-right` / `ctrl-backspace` word-wise line editing,
+  and `shift-pgup` / `shift-pgdn` one page of terminal scrollback).
 - The status line's numbers refresh every 15s; machine states and hostnames
   every 10s and 60s; the clock every 15s.
 

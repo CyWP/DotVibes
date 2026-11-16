@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# cpl — copy the last N lines of this herdr terminal's output to the system
+# clipboard, for pasting anywhere with ctrl+v. Runs entirely inside the
+# terminal: `hc read` prints the screen and scrollback of this pane
+# ($HC_TERMINAL_ID, exported by herdr panes) and xclip serves the selection
+# (herdr panes get a working X/Wayland environment). Lines wrapped by the
+# terminal count as they appear on screen. The two-line DotVibes prompt
+# (╭─… / ╰─»…) is skipped when it is at the bottom of the screen (a resting
+# shell); while a command is still running the bottom rows are its own output
+# and nothing is skipped.
+# Usage: cpl [N] — N defaults to 10.
+
+set -u
+
+n="${1:-10}"
+if [ -z "${HC_TERMINAL_ID:-}" ] || ! command -v hc > /dev/null 2>&1 \
+    || ! command -v xclip > /dev/null 2>&1; then
+    echo "cpl: needs a herdr terminal (HC_TERMINAL_ID) with hc and xclip" >&2
+    exit 1
+fi
+case "$n" in ''|*[!0-9]*) echo "cpl: N must be a number" >&2; exit 1 ;; esac
+
+mapfile -t rows < <(hc read "$HC_TERMINAL_ID") || exit 1
+total=${#rows[@]} skip=0
+# A resting shell ends with the two prompt rows (arrow line, entry line);
+# recognize them by their glyphs so command output at the bottom isn't cut.
+if (( total >= 2 )) && [[ ${rows[total - 2]} == ╭─* && ${rows[total - 1]} == ╰─* ]]; then
+    skip=2
+fi
+start=$(( total - skip - n ))
+(( start < 0 )) && start=0
+printf '%s\n' "${rows[@]:start:n}" | xclip -selection clipboard

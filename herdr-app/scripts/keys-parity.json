@@ -1,5 +1,5 @@
 {
-  "_comment": "Keymap parity for the herdr-tui-layout on Linux. install.sh applies this to the person's keys.json; uninstall.sh reverts it. remove_defaults: Herdr's stock bindings for commands the layout's ctrl-b keys already provide — dropped so there is one way each. linux_twins: herdr-nvim's cmd- keys don't reach the app on Linux (no cmd mapping; cmd-shift-e is shadowed by the default ctrl-shift-e), so they get alt- twins, added only when mods/herdr-nvim is installed.",
+  "_comment": "Keymap parity for the herdr-tui-layout on Linux. install.sh applies this to the person's keys.json; uninstall.sh reverts it. remove_defaults: Herdr's stock bindings for commands the layout's ctrl-b keys already provide — dropped so there is one way each.",
   "remove_defaults": {
     "ctrl-shift-t": "tab.new",
     "ctrl-pagedown": "tab.next",
@@ -36,10 +36,5 @@
     "ctrl-?": "app.help",
     "ctrl-shift-/": "app.help",
     "ctrl-shift-?": "app.help"
-  },
-  "linux_twins": {
-    "alt-e": "herdr-nvim.reveal",
-    "alt-o": "herdr-nvim.pick",
-    "alt-shift-e": "mod.open:herdr-nvim"
   }
 }

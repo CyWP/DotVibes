@@ -24,7 +24,6 @@ JSON, a theme, seven mods in JavaScript on Herdr's gpui-kit, and a keys file.
   `-picker`, `-help`) are Herdr's code under Apache-2.0: keep the note at the
   top of each `main.js` current, and keep changes small.
 - **Say what a mod runs.** If a change makes a mod run a program, read a file
-  outside its folder or use the network, update "What it runs" in the README
-  and `SECURITY.md`.
-- **One change per commit**, and update `RECIPE.md`, the README and
-  `CHANGELOG.md` when what people see or do changes.
+  outside its folder or use the network, say so in the mod's `main.js` header.
+- **One change per commit**, and update `RECIPE.md` when what people see or
+  do changes.

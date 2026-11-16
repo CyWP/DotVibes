@@ -11,7 +11,7 @@ shown tab's segment lit. Panes are rounded cards with a 1px border that turns
 orange on the one you're typing in. `ctrl-b` drives it like herdr-tui does.
 A community layout for herdr-app, not herdr-tui itself; not affiliated with Herdr.
 
-![herdr-tui-layout](preview.png)
+![herdr-tui-layout](layouts/herdr-tui-layout.png)
 
 ## What you see
 

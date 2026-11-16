@@ -200,10 +200,10 @@ undo_component() {
           done < <(find "$b" -type f)
         fi
         # keys.json: drop the section our installer merged into it, revert
-        # the keys parity (herdr-app/install.sh): remove the herdr-nvim alt-
-        # twins and restore the stock defaults it dropped. The table lives
-        # in the repo's herdr-app/scripts/keys-parity.json; with the folder
-        # gone, only the section is removed.
+        # the keys parity (herdr-app/install.sh): restore the stock defaults
+        # it dropped. The table lives in the repo's
+        # herdr-app/scripts/keys-parity.json; with the folder gone, only the
+        # section is removed.
         if [ -f "$app/keys.json" ]; then
           cp -p "$app/keys.json" "$app/backups/keys.json.bak-uninstall-$(date +%Y%m%d-%H%M%S)"
           parity="$ROOT/herdr-app/scripts/keys-parity.json"
@@ -244,7 +244,6 @@ PY
           echo "warn: ${XDG_DATA_HOME:-$HOME/.local/share}/$name (usage hook) left in place;" \
             "remove it and its statusLine entry in ~/.claude/settings.json by hand if wanted" >&2
         fi
-        echo "-> note: herdr-nvim is managed by its own upstream script — not touched here"
       fi
       ;;
   esac

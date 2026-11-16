@@ -28,7 +28,8 @@ self-contained `install.sh` (you can also run any of them on its own):
 | `appearance/` | `appearance/bg.png` | wallpaper: copied to `~/.local/share/backgrounds/`, GNOME keys set via gsettings |
 | `fonts/` | `fonts/Monaspace Argon/*.otf` (core 4 styles) | `~/.local/share/fonts/Monaspace Argon/*.otf` |
 | `bash/` | shell files: `paths`, `prompt`, `aliases`, `extra` | `~/.config/bash/.{paths,prompt,aliases,extra}` (micromamba's init block + the tool-installer nvim/opencode PATH lines live directly in `~/.bashrc`, tool-managed) |
-| `bin/` | 16 hand-written scripts | `~/.local/bin/*` |
+| `python/` | `ruff.toml` + python project templates | copied into project roots by `bin/pyproj` (committed with each project, not linked) |
+| `bin/` | 20 hand-written scripts | `~/.local/bin/*` |
 
 The agents component is intentionally linked into the Claude config dirs —
 opencode natively reads `~/.claude/skills` as a global compatibility source,

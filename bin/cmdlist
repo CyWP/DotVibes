@@ -14,6 +14,11 @@ while [ -L "$SOURCE" ]; do
 done
 ROOT=$(cd -P "$(dirname "$SOURCE")/.." && pwd)
 
+# Print the commands in a grid that fills the current terminal width.
+# COLUMNS is usually unset in scripts, so fall back to tput; 80 if neither works.
+WIDTH="${COLUMNS:-$(tput cols 2>/dev/null)}"
+WIDTH="${WIDTH:-80}"
+
 echo "AVAILABLE COMMANDS"
 echo "------------------"
-ls "$ROOT/bin" | grep -v '^install.sh$' || true
+ls "$ROOT/bin" | grep -v '^install.sh$' | column -c "$WIDTH" || true

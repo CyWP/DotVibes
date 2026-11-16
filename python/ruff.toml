@@ -1,0 +1,27 @@
+# Canonical DotVibes python style — copied into project roots by `bin/pyproj`.
+# Ruff never merges configs across the hierarchy: a project-local ruff.toml
+# (or a [tool.ruff] section in pyproject.toml) REPLACES this file wholesale.
+# To layer project tweaks on top of a shared baseline instead, start a
+# project config with:
+#   extend = "~/.config/ruff/ruff.toml"
+# (home dir and $VARS are expanded in `extend`)
+
+# Formatting style (ruff format). `line-length` at the top level feeds both
+# the formatter and lint's E501 — hence the E501 ignore below.
+line-length = 100
+
+[format]
+quote-style = "double"
+
+[lint]
+# E/W pycodestyle, F pyflakes, I isort (import order), UP pyupgrade,
+# B flake8-bugbear (real-bug patterns). The formatter already owns line
+# length and whitespace, so E501/W291-style noise stays off.
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]
+
+[lint.isort]
+# First-party imports are detected from the project layout
+# (src = [".", "src"] by default). Add explicit names here when detection
+# gets it wrong:
+# known-first-party = ["my_package"]

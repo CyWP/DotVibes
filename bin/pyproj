@@ -1,0 +1,93 @@
+#!/bin/bash
+# pyproj — apply the DotVibes python project templates to a project root.
+# Copies the tracked files in the repo's python/ folder (ruff.toml, ...) into
+# the root of the git repository the current directory belongs to, so every
+# project starts from the same lint/format baseline — and commits it, so the
+# style travels with the project (clones lint identically without DotVibes).
+#
+#   pyproj           -> target = git repo root of PWD (git rev-parse --show-toplevel)
+#   pyproj --here    -> target = PWD itself (edge case: no git repo, or you
+#                       don't want the files at the repo root)
+#   pyproj --force   -> overwrite existing files with the repo templates
+#                       (combine with --here: "pyproj --here --force")
+#   pyproj --help
+#
+# Without --force, files that already exist at the target are left untouched
+# (delete them by hand to re-apply). To change the baseline for future
+# projects, edit python/ in the DotVibes repo and re-apply per project.
+#
+# cmdlist picks this command up automatically (it lists everything in bin/).
+
+# Resolve repo root even when invoked through the symlink target
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR=$(cd -P "$(dirname "$SOURCE")" && pwd)
+  SOURCE=$(readlink "$SOURCE")
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+DV_ROOT=$(cd -P "$(dirname "$SOURCE")/.." && pwd)
+SRC_DIR="$DV_ROOT/python"
+
+if [ ! -d "$SRC_DIR" ]; then
+  echo "error: $SRC_DIR missing — is the repo intact?" >&2
+  exit 1
+fi
+
+# --- pick the target directory and the overwrite mode ----------------------------
+FORCE=0
+for arg in "$@"; do
+  case "$arg" in
+    -h | --help)
+      sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    --here) TARGET="$PWD" ;;
+    --force) FORCE=1 ;;
+    *)
+      echo "error: unknown argument '$arg' (expected --here, --force or --help)" >&2
+      exit 2
+      ;;
+  esac
+done
+if [ -z "${TARGET:-}" ]; then
+  TARGET=$(git -C "$PWD" rev-parse --show-toplevel 2>/dev/null) || {
+    echo "error: not inside a git repository — run from a project, or use --here" >&2
+    exit 1
+  }
+fi
+
+# --- copy the templates ------------------------------------------------------------
+count=0
+for src in "$SRC_DIR"/*; do
+  [ -f "$src" ] || continue
+  name=$(basename "$src")
+  # folder bookkeeping, not project files
+  case "$name" in README.md | install.sh) continue ;; esac
+  if [ -e "$TARGET/$name" ] && [ "$FORCE" -eq 0 ]; then
+    echo "-> $name already exists — left untouched (remove it, or use --force)"
+    continue
+  fi
+  existed=$([ -e "$TARGET/$name" ] && echo 1 || echo 0)
+  cp "$src" "$TARGET/$name"
+  if [ "$existed" -eq 1 ]; then
+    echo "-> overwrote $TARGET/$name with the repo template"
+  else
+    echo "-> added $TARGET/$name"
+  fi
+  count=$((count + 1))
+done
+
+# --- heads-up: ruff.toml outranks [tool.ruff] in pyproject.toml ------------------
+# Same-directory precedence: .ruff.toml > ruff.toml > pyproject.toml — and
+# ruff never merges, so a project's own [tool.ruff] settings are overridden
+# wholesale by the copied file. If that's not wanted, merge them into
+# ruff.toml instead.
+if [ -f "$TARGET/pyproject.toml" ] && grep -q '^\[tool\.ruff' "$TARGET/pyproject.toml" 2>/dev/null; then
+  echo "note: $TARGET/pyproject.toml has [tool.ruff] — the copied ruff.toml takes precedence over it"
+fi
+
+if [ "$count" -gt 0 ]; then
+  echo "done: $count file(s) written to $TARGET — commit them with the project"
+else
+  echo "nothing added (all templates already present)"
+fi

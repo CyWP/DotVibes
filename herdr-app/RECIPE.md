@@ -25,13 +25,13 @@ text `#9a9484`. Status colours: working `#ffca5f`, needs you `#ff004c`,
 done `#afc8a6`, idle `#9a9484`. Every font is Menlo at 12.5px, terminals and
 panels alike; emphasis is bold or dim, never a bigger size.
 
-Behind everything, the layout paints its background with
-`backgrounds/herdr-tui-layout-bg.jpg`: the person's wallpaper (DotVibes
-`appearance/bg.png`) **unmuted** — only format-converted, since Herdr
-doesn't draw a PNG background — and pre-scaled 150% so the window maps to
-the image's centre, not its transparent edges (`magick bg.png -resize
-150% -background "#1b1a17" -flatten -quality 92 herdr-tui-layout-bg.jpg`).
-Every surface mutes it itself: the terminals paint their own surface
+Behind everything, the layout paints its background with `backgrounds/bg.png`
+**in the app home** (`~/.config/herdr-app`, or `HERDR_APP_HOME`): a copy of
+DotVibes' wallpaper (`appearance/bg.png`), seeded there by
+`scripts/install.sh`. The image itself is not in this repo — changing the
+picture in Herdr edits the app-home file, outside the repo; the installer
+only re-seeds it when the file is missing (as --force does after backing
+the old one up). Every surface mutes it itself: the terminals paint their own surface
 a touch more transparent than stock (`terminal_opacity: 0.68` on the
 root — measured at ~78% coverage against the raw wallpaper), the
 sidebar's two cards carry the same base (`bg(t.background + "c7")` in
@@ -161,8 +161,9 @@ Top to bottom:
 
 - **Layout** (`layouts/herdr-tui-layout.json`): a row (`titlebar: "none"`,
   `traffic_lights` `[14, 14]`, `terminal_menu: "herdr-tui-layout-menu"`,
-  `background` the wallpaper image `backgrounds/herdr-tui-layout-bg.jpg`
-  (`fit: "cover"`), `terminal_opacity: 0.68`):
+  `background` the wallpaper image `backgrounds/bg.png` in the app home
+  (a copy of DotVibes' `appearance/bg.png`, seeded by the installer; see
+  above) (`fit: "cover"`), `terminal_opacity: 0.68`):
   `sidebar` (column, 280px,
   40–480, gap 5, no padding — the mod draws the cards so the margins can
   differ per side: 4 at the top and bottom, 3 at the sides) holding

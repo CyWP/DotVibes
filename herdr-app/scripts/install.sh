@@ -32,7 +32,7 @@ stamp=$(date +%Y%m%d-%H%M%S)
 
 # What this would replace.
 taken=""
-for p in "layouts/$name.json" "themes/$name.json" "backgrounds/$name-bg.jpg"; do
+for p in "layouts/$name.json" "themes/$name.json" "backgrounds/bg.png"; do
   if [ -e "$home/$p" ]; then taken="$taken $p"; fi
 done
 for m in "$here"/mods/*/; do
@@ -54,9 +54,19 @@ fi
 mkdir -p "$home/layouts" "$home/themes" "$home/mods" "$home/backgrounds"
 cp "$here/layouts/$name.json" "$here/layouts/$name.png" "$home/layouts/"
 cp "$here/themes/$name.json" "$home/themes/"
-cp "$here/backgrounds/$name-bg.jpg" "$home/backgrounds/"
+# The background lives outside this repo: the layout points at the app home's
+# backgrounds/bg.png, so a picture changed in Herdr is never repo content.
+# Seed it from the repo's wallpaper asset only when there isn't one (with
+# --force the old copy was just moved to backups, so it is re-seeded).
+bg_src="$here/../appearance/bg.png"
+if [ ! -f "$bg_src" ]; then
+  echo "warn: $bg_src missing — layout's background not seeded (is the repo intact?)" >&2
+elif [ ! -e "$home/backgrounds/bg.png" ]; then
+  cp "$bg_src" "$home/backgrounds/bg.png"
+  echo "seeded $home/backgrounds/bg.png from the repo's appearance/bg.png"
+fi
 for m in "$here"/mods/*/; do cp -R "$m" "$home/mods/$(basename "$m")"; done
-echo "copied the layout, its theme, its background and $(ls -d "$here"/mods/*/ | wc -l | tr -d ' ') mods into $home"
+echo "copied the layout, its theme and $(ls -d "$here"/mods/*/ | wc -l | tr -d ' ') mods into $home"
 
 # Keys: add this layout's section; keep everything else as it is.
 if [ -f "$home/keys.json" ]; then

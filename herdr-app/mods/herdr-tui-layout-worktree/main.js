@@ -2,7 +2,11 @@
 // Changes: draws its own rounded box (opened with frame: "none"); the new
 // worktree dialog gained a base branch (with suggestions, fetch and
 // validation) and a startup script picker (scripts.json + custom commands),
-// ported from the herdrtw layout's worktree.js (Apache-2.0, see NOTICE).
+// ported from the herdrtw layout's worktree.js (Apache-2.0, see NOTICE);
+// tab / shift-tab cycle the dialog's fields and never pick suggestions
+// (the base list runs on arrows + enter; the startup script dropdown opens
+// and is driven from the keyboard too); the dialog matches the pane cards'
+// radius and translucency.
 // Worktree dialog: { space, action: "new" | "open" | "remove" } or
 // { folder, machine } for a repo without a space; optional { branch, tab, argv, base }.
 
@@ -123,7 +127,7 @@ export default class Worktree extends View {
     this.input.on("change", (_e, cx) => { this.text = this.input.value(); this.error = ""; this.at = 0; cx.notify(); });
     this.input.on("submit", (_e, cx) => this.go(cx));
     this.inputFocused = true;
-    this.input.on("focus", (_e, cx) => { this.inputFocused = true; cx.notify(); });
+    this.input.on("focus", (_e, cx) => { this.inputFocused = true; this.scriptFocused = false; cx.notify(); });
     this.input.on("blur", (_e, cx) => { this.inputFocused = false; cx.notify(); });
     if (props()?.action !== "remove") {
       this.input.focus();
@@ -139,7 +143,7 @@ export default class Worktree extends View {
     this.sugAt = 0;
     this.sugTouched = false;
     this.baseFocused = false;
-    this.baseInput.on("focus", (_e, cx) => { this.baseFocused = true; cx.notify(); });
+    this.baseInput.on("focus", (_e, cx) => { this.baseFocused = true; this.scriptFocused = false; cx.notify(); });
     this.baseInput.on("blur", (_e, cx) => { this.baseFocused = false; cx.notify(); });
     // The command that runs in the new space's first terminal: a script from
     // scripts.json next to this mod, or a custom one typed on the spot.
@@ -153,11 +157,12 @@ export default class Worktree extends View {
     this.customInput.on("change", (_e, cx) => { this.custom = this.customInput.value(); this.error = ""; cx.notify(); });
     this.customInput.on("submit", (_e, cx) => this.go(cx));
     this.customFocused = false;
-    this.customInput.on("focus", (_e, cx) => { this.customFocused = true; cx.notify(); });
+    this.customInput.on("focus", (_e, cx) => { this.customFocused = true; this.scriptFocused = false; cx.notify(); });
     this.customInput.on("blur", (_e, cx) => { this.customFocused = false; cx.notify(); });
     this.scripts = [{ name: "No script" }, { name: "Custom…", custom: true }];
     this.scriptAt = 0;
     this.scriptOpen = false;
+    this.scriptFocused = false;
     cx.spawn(async (cx) => {
       try {
         const raw = await readTextFile(`${appHome()}/mods/herdr-tui-layout-worktree/scripts.json`);
@@ -262,7 +267,6 @@ export default class Worktree extends View {
     this.baseInput.set_value(branch);
     this.sugTouched = false;
     this.sugAt = 0;
-    this.baseFocused = false;
     cx.notify();
   }
 
@@ -367,7 +371,8 @@ export default class Worktree extends View {
   }
 
   key(e, cx) {
-    // The base field's suggestion list: arrows move, tab picks.
+    // The base field's suggestion list: arrows move through it, enter picks
+    // (the field's submit does that). Tab never picks — it cycles fields.
     if (!this.opening && this.baseFocused) {
       const sug = this.suggestions();
       if (sug.length && (e.key === "down" || e.key === "up")) {
@@ -376,10 +381,58 @@ export default class Worktree extends View {
         cx.stop_propagation();
         return cx.notify();
       }
-      if (sug.length && e.key === "tab") {
-        this.pick(sug[this.sugAt], cx);
+    }
+    // The startup script trigger's keyboard focus: enter or down opens the
+    // dropdown, arrows choose, enter picks; tab moves on (the cycle below
+    // closes the dropdown when leaving).
+    if (!this.opening && this.scriptFocused) {
+      if (!this.scriptOpen && (e.key === "enter" || e.key === "down")) {
+        this.scriptOpen = true;
+        cx.notify();
         return cx.stop_propagation();
       }
+      if (this.scriptOpen) {
+        const n = this.scripts.length;
+        if (e.key === "down" || e.key === "up") {
+          this.scriptAt = (this.scriptAt + (e.key === "down" ? 1 : n - 1)) % n;
+          cx.notify();
+          return cx.stop_propagation();
+        }
+        if (e.key === "enter") {
+          const sc = this.scripts[this.scriptAt];
+          this.scriptOpen = false;
+          this.scriptFocused = false;
+          cx.notify();
+          if (sc?.custom) cx.timer.after(50, () => this.customInput.focus());
+          return cx.stop_propagation();
+        }
+      }
+    }
+    // tab / shift-tab cycle the dialog's fields (branch, base, the startup
+    // script trigger, and the custom command while it is shown), wrapping.
+    // Only when the fields are on screen: the new-worktree dialog with its
+    // repo found.
+    if (e.key === "tab" && !this.opening && props()?.action !== "remove" && this.repo) {
+      const customShown = this.scripts[this.scriptAt]?.custom && !this.scriptOpen;
+      const fields = [this.input, this.baseInput, "script", ...(customShown ? [this.customInput] : [])];
+      const focused = this.inputFocused ? 0 : this.baseFocused ? 1 : this.scriptFocused ? 2 : customShown && this.customFocused ? 3 : -1;
+      const next = focused === -1
+        ? (e.modifiers.shift ? fields.length - 1 : 0)
+        : (focused + (e.modifiers.shift ? fields.length - 1 : 1)) % fields.length;
+      const to = fields[next];
+      // Leaving the base field ends its suggestion browsing.
+      if (focused === 1) this.sugTouched = false;
+      if (to === "script") {
+        // The keyboard moves onto the dialog itself (the inputs blur
+        // normally, so their focus flags and the suggestion list reset).
+        this.handle.focus();
+        this.scriptFocused = true;
+      } else {
+        this.scriptOpen = false;
+        this.scriptFocused = false;
+        to.focus();
+      }
+      return cx.stop_propagation();
     }
     if (e.key === "escape") return this.close();
     if (this.opening) {
@@ -430,7 +483,7 @@ export default class Worktree extends View {
       .size_full()
       .p(16)
       .gap(10)
-      .rounded(10).border_1().border_color(t.border).bg(t.popover)
+      .rounded(6).border_1().border_color(t.border).bg(t.popover + "c7")
       .text_size(13)
       .child(h_flex().child(div().flex_1().font_semibold().text_color(t.foreground).child(`Open worktree${r ? ` of ${r.name}` : ""}`)).child(div().text_size(11).text_color(t.dim).child(r ? count : "")))
       .when(r === undefined || (r && this.list === undefined), (el) => el.child(div().text_color(t.muted).child("\u2026")))
@@ -482,7 +535,7 @@ export default class Worktree extends View {
       .size_full()
       .p(16)
       .gap(10)
-      .rounded(10).border_1().border_color(t.border).bg(t.popover)
+      .rounded(6).border_1().border_color(t.border).bg(t.popover + "c7")
       .text_size(13)
       .child(div().font_semibold().text_color(t.foreground).child(title))
       .child(div().text_color(t.muted).child(detail))
@@ -549,11 +602,11 @@ export default class Worktree extends View {
               .justify_between()
               .rounded(6)
               .border(1)
-              .border_color(this.scriptOpen ? t.accent : t.input)
+              .border_color(this.scriptFocused || this.scriptOpen ? t.accent : t.input)
               .bg(t.background)
               .text_color(this.scriptAt ? t.foreground : t.muted)
               .hover((st) => st.bg(t.hover))
-              .on_click((_e, cx) => { this.scriptOpen = !this.scriptOpen; cx.notify(); })
+              .on_click((_e, cx) => { this.handle.focus(); this.scriptFocused = true; this.scriptOpen = !this.scriptOpen; cx.notify(); })
               .child(this.scripts[this.scriptAt]?.name ?? "No script")
               .child(svg("mods/workspace-chrome/chevron-down.svg").size(14).text_color(t.dim)),
           )

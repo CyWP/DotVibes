@@ -113,7 +113,14 @@ Top to bottom:
   `spaces` order they follow the spaces list. `ctrl-b alt-1..9` jumps to the
   agent in that row.
 - **The New worktree dialog** (`ctrl-b shift-g`, or the space menu) asks
-  the git branch, the base branch and a startup script. The base defaults
+  the git branch, the base branch and a startup script. Tab / shift-tab
+  always move between the fields (branch → base → the startup script →
+  the custom command while it is shown, wrapping) and never pick a
+  suggestion. In the base field, ↑↓ move through the suggestions and ↵
+  picks the highlighted one (↵ again creates). On the startup script,
+  ↵ or ↓ opens the dropdown, ↑↓ choose, ↵ picks. The dialog is drawn
+  like the pane cards: 6px corners, the popover colour at the panels'
+  translucency. The base defaults
   to where the repo is checked out now and suggests the repo's local and
   remote branches while the field is focused (↑↓ move, tab picks, the list
   follows what you type); a base that names a remote branch is fetched

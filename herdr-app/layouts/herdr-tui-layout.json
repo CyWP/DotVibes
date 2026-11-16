@@ -7,9 +7,10 @@
     14
   ],
   "theme": "herdr-tui-layout",
-  "font": "Menlo",
+  "font": "Monaspace Argon NF",
   "font_size": 12.5,
-  "ui_font": "Menlo",
+  "font_weight": 400,
+  "ui_font": "Monaspace Argon NF",
   "background": {
     "image": "backgrounds/herdr-tui-layout-bg.jpg",
     "fit": "cover"

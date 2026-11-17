@@ -110,11 +110,10 @@ Top to bottom:
    measured), so the wallpaper's washes show through. The tab bar
    hairline sits 4px above the window's bottom and 5px below the cards; 3px
    at the window's sides.
-6. **Popups and dialogs** (right-click menus, rename, worktree, help)
-   draw their own opaque `#2d2b27` box with 10px corners and a 1px
-   border; the selected row is `#484439` and follows the pointer. The
-   space picker is the exception: its box is the popover colour at ~78%,
-   matching the panels.
+6. **Popups and dialogs** (right-click menus, rename, worktree, help,
+   picker) draw their own translucent box — the popover colour at ~78%,
+   like the panels — with 6px corners and a 1px border; the menu's
+   selected row is the selection colour at ~70% and follows the pointer.
 
 ## How it behaves
 
@@ -292,7 +291,7 @@ Top to bottom:
   its width. Dragging the sidebar's empty space moves the window.
 - `ctrl-b c` opens a tab; `ctrl-b alt-g` opens lazygit floating over the
   tab, gone when it quits.
-- Right-click a space → Rename opens a dialog with 10px corners and no notch.
+- Right-click a space → Rename opens a dialog with 6px corners and no notch.
 - With the usage hook installed and a Claude session running, the agents
   half's bottom line shows its model and ctx, and 5h and week turn yellow
   past 50%.

@@ -8,6 +8,9 @@
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { run, props, closeOverlay, openOverlay, theme, keys, terminals, spaces, panes, exec } from "herdr";
+// Theme colours may already carry an alpha (#rrggbbaa); only shade the plain ones.
+const shade = (c, a) => (c && c.length > 7 ? c : c + a);
+
 
 // herdr-tui-layout's rename dialog (herdr-tui-layout-prompt, which draws its own rounded box)
 // instead of Herdr's, whose square background pokes out of the app's frame.
@@ -140,10 +143,10 @@ export default class Menu extends View {
       .size_full()
       .min_h(0)
       .p(5)
-      .rounded(10)
+      .rounded(6)
       .border_1()
       .border_color(t.border)
-      .bg(t.raised)
+      .bg(shade(t.popover, "c7"))
       .text_size(12.8)
       .on_key_down((e, cx) => {
         if (e.key === "down") this.at = (this.at + 1) % list.length;
@@ -162,11 +165,11 @@ export default class Menu extends View {
             .h(31)
             .px(8)
             .gap(9)
-            .rounded(7)
+            .rounded(4)
             .items_center()
             .justify_between()
             .text_color(t.foreground)
-            .when(i === this.at, (el) => el.bg(t.selected))
+            .when(i === this.at, (el) => el.bg(shade(t.selected, "b3")))
             // The selection follows the pointer, so the row under it is the
             // selected one: one look, no separate hover colour on top.
             .on_hover((hovered, cx) => { if (hovered && this.at !== i) { this.at = i; cx.notify(); } })

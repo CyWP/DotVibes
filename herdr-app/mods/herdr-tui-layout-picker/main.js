@@ -13,6 +13,9 @@
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { agents, spaces, terminals, run, hc, theme, settings, props, closeOverlay, openOverlay, shared, setShared } from "herdr";
+// Theme colours may already carry an alpha (#rrggbbaa); only shade the plain ones.
+const shade = (c, a) => (c && c.length > 7 ? c : c + a);
+
 
 const MARK = { ansi6: "#22a99a", ansi3: "#e3814f", ansi4: "#5b8def", ansi5: "#8b7cf6", ansi2: "#3fae6a", ansi1: "#d9649a" };
 
@@ -273,7 +276,7 @@ export default class Picker extends View {
       .min_h(0)
       .p(18)
       .gap(10)
-      .rounded(10).border_1().border_color(t.border).bg(t.popover + "c7")
+      .rounded(6).border_1().border_color(t.border).bg(shade(t.popover, "c7"))
       .text_size(13)
       .on_key_down((e, cx) => {
         const k = e.key;

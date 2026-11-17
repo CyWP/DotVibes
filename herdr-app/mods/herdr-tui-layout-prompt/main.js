@@ -4,6 +4,9 @@
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { run, props, closeOverlay, theme } from "herdr";
+// Theme colours may already carry an alpha (#rrggbbaa); only shade the plain ones.
+const shade = (c, a) => (c && c.length > 7 ? c : c + a);
+
 
 export default class Prompt extends View {
   init(_props, cx) {
@@ -41,7 +44,7 @@ export default class Prompt extends View {
     return v_flex().id("prompt").track_focus(this.handle).on_key_down((e, cx) => this.key(e, cx))
       // Opened with frame: "none", so this draws the whole box: one radius
       // for the box, a smaller one for what's inside, nothing square behind.
-      .size_full().min_h(0).p(18).rounded(10).border_1().border_color(t.border).bg(t.raised).text_color(t.foreground)
+      .size_full().min_h(0).p(18).rounded(6).border_1().border_color(t.border).bg(shade(t.popover, "c7")).text_color(t.foreground)
       .child(h_flex().items_center().child(div().flex_1().text_size(15).font_semibold().child((p.title ?? "").replace(/^./, (c) => c.toUpperCase())))
         .child(div().text_size(11).text_color(t.dim).child("Esc")))
       .child(label("Name"))

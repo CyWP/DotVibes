@@ -6,6 +6,9 @@
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { keys, props, closeOverlay, theme } from "herdr";
+// Theme colours may already carry an alpha (#rrggbbaa); only shade the plain ones.
+const shade = (c, a) => (c && c.length > 7 ? c : c + a);
+
 
 const GROUPS = [
   ["spaces", /^space\./],
@@ -52,7 +55,7 @@ export default class Help extends View {
       .min_h(0)
       .p(18)
       .gap(14)
-      .rounded(10).border_1().border_color(t.border).bg(t.popover)
+      .rounded(6).border_1().border_color(t.border).bg(shade(t.popover, "c7"))
       .text_size(12)
       .child(
         h_flex()

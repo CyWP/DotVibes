@@ -13,6 +13,9 @@
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input, Scrollbar } from "gpui-base";
 import { run, props, closeOverlay, theme, spaces, panes, exec, home, appHome, readTextFile, writeTextFile } from "herdr";
+// Theme colours may already carry an alpha (#rrggbbaa); only shade the plain ones.
+const shade = (c, a) => (c && c.length > 7 ? c : c + a);
+
 
 // Where a space is now: its first terminal's live folder, else where it was made.
 function place(s) {
@@ -483,7 +486,7 @@ export default class Worktree extends View {
       .size_full()
       .p(16)
       .gap(10)
-      .rounded(6).border_1().border_color(t.border).bg(t.popover + "c7")
+      .rounded(6).border_1().border_color(t.border).bg(shade(t.popover, "c7"))
       .text_size(13)
       .child(h_flex().child(div().flex_1().font_semibold().text_color(t.foreground).child(`Open worktree${r ? ` of ${r.name}` : ""}`)).child(div().text_size(11).text_color(t.dim).child(r ? count : "")))
       .when(r === undefined || (r && this.list === undefined), (el) => el.child(div().text_color(t.muted).child("\u2026")))
@@ -535,7 +538,7 @@ export default class Worktree extends View {
       .size_full()
       .p(16)
       .gap(10)
-      .rounded(6).border_1().border_color(t.border).bg(t.popover + "c7")
+      .rounded(6).border_1().border_color(t.border).bg(shade(t.popover, "c7"))
       .text_size(13)
       .child(div().font_semibold().text_color(t.foreground).child(title))
       .child(div().text_color(t.muted).child(detail))

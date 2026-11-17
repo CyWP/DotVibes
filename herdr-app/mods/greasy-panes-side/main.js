@@ -8,13 +8,13 @@ import { View, div, svg } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { spaces, agents, machines, panes, run, theme, home, props, setAgentOrder, openOverlay, hc, nextCommand, exec, focused, notify, setShared } from "herdr";
 
-// herdr-tui-layout's rename dialog (herdr-tui-layout-prompt, which draws its own rounded box)
+// greasy-panes's rename dialog (greasy-panes-prompt, which draws its own rounded box)
 // instead of Herdr's, whose square background pokes out of the app's frame.
 function rename(kind, id) {
   const sp = spaces();
   const target = kind === "space" ? sp.find((s) => s.id === id) : sp.flatMap((s) => s.tabs).find((x) => x.id === id);
   openOverlay({
-    mod: "herdr-tui-layout-prompt", kind: "dialog", frame: "none", width: 400, height: 214,
+    mod: "greasy-panes-prompt", kind: "dialog", frame: "none", width: 400, height: 214,
     props: {
       title: `rename ${kind}`,
       value: target?.named ? target.name : "",
@@ -36,7 +36,7 @@ const shade = (c, a) => (c && c.length > 7 ? c : c + a);
 // What Claude Code reports about each session (model, context, the account's
 // 5-hour and weekly limits), saved by extras/claude-usage-hook.sh (in this layout's repo), its
 // statusLine command. Newest first: "<mtime>\t<json>" per line.
-const USAGE = 'd="$HOME/.local/state/herdr-tui-layout/claude"; for f in $(ls -t "$d"/*.json 2>/dev/null | head -40); do printf "%s\\t" "$(stat -f %m "$f")"; tr -d "\\n" < "$f"; echo; done';
+const USAGE = 'd="$HOME/.local/state/greasy-panes/claude"; for f in $(ls -t "$d"/*.json 2>/dev/null | head -40); do printf "%s\\t" "$(stat -f %m "$f")"; tr -d "\\n" < "$f"; echo; done';
 
 const RANK = { blocked: 0, done: 1, working: 2, idle: 3 };
 
@@ -135,7 +135,7 @@ export default class TuiSide extends View {
         }
       });
     }
-    // Keys bound to herdr-tui-layout-side.<command> (keys.json, layout:herdr-tui-layout).
+    // Keys bound to greasy-panes-side.<command> (keys.json, layout:greasy-panes).
     cx.spawn(async (cx) => {
       for (;;) {
         const c = await nextCommand();
@@ -212,14 +212,14 @@ export default class TuiSide extends View {
         }
         if (c === "new-worktree" && (props()?.part ?? "spaces") === "spaces") {
           const s = spaces().find((x) => x.active);
-          if (s) openOverlay({ mod: "herdr-tui-layout-worktree", kind: "dialog", frame: "none", width: 440, height: 600, props: { space: s.id, action: "new" } });
+          if (s) openOverlay({ mod: "greasy-panes-worktree", kind: "dialog", frame: "none", width: 440, height: 600, props: { space: s.id, action: "new" } });
         }
         // The old bar's keys, here now (keys.json points at this mod): the
         // picker, help, rename-tab and the popup programs, all on the agents
         // copy so the two copies of this mod don't both open one.
         if ((props()?.part ?? "spaces") === "agents") {
-          if (c === "picker") openOverlay({ mod: "herdr-tui-layout-picker", kind: "dialog", frame: "none", width: 640, height: 0.45, props: { mode: "spaces" } });
-          if (c === "help") openOverlay({ mod: "herdr-tui-layout-help", kind: "dialog", frame: "none", width: 560, height: 560 });
+          if (c === "picker") openOverlay({ mod: "greasy-panes-picker", kind: "dialog", frame: "none", width: 640, height: 0.45, props: { mode: "spaces" } });
+          if (c === "help") openOverlay({ mod: "greasy-panes-help", kind: "dialog", frame: "none", width: 560, height: 560 });
           if (c === "rename-tab") {
             const tab = spaces().find((x) => x.active)?.tabs.find((x) => x.active);
             if (tab) rename("tab", tab.id);
@@ -269,11 +269,11 @@ export default class TuiSide extends View {
     let address = null;
     try { address = r?.code === 0 ? JSON.parse(r.stdout).address : null; } catch {}
     if (!address) { notify({ title: `Couldn't start ${program}`, body: r?.stderr?.trim() || "Is it installed?", level: "error" }); return; }
-    openOverlay({ kind: "dialog", key: `herdr-tui-layout-popup-${program}`, width: share, height: share, layout: { type: "block", content: { terminal: address } } });
+    openOverlay({ kind: "dialog", key: `greasy-panes-popup-${program}`, width: share, height: share, layout: { type: "block", content: { terminal: address } } });
   }
 
   menu(s) {
-    openOverlay({ mod: "herdr-tui-layout-menu", kind: "popup", frame: "none", width: 280, height: 260, props: { tab: "space", target: { id: s.id } } });
+    openOverlay({ mod: "greasy-panes-menu", kind: "popup", frame: "none", width: 280, height: 260, props: { tab: "space", target: { id: s.id } } });
   }
 
   toggle(key, cx) {
@@ -378,8 +378,10 @@ export default class TuiSide extends View {
       // The sidebar block drags the window; rows opt their presses out.
       .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
       .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); this.menu(s); })
-      .child(div().absolute().left(14).top(-2).w(1).h(last ? 12 : 22).bg(t.dim))
-      .child(div().absolute().left(14).top(10).w(10).h(1).bg(t.dim))
+      // The elbow: a rounded quarter-turn into the row. Worktrees with a
+      // next sibling keep the trunk running through below the curve.
+      .child(div().absolute().left(14).top(last ? -2 : 4).w(10).h(last ? 12 : 6).border_l(1).border_b(1).rounded_bl(6).border_color(t.dim))
+      .when(!last, (el) => el.child(div().absolute().left(14).top(-2).w(1).h(22).bg(t.dim)))
       .child(div().flex_none().text_color(s.status ? tint(s.status) : t.dim).child(ring(s.status)))
       .child(div().flex_1().min_w(0).truncate().text_color(s.active ? t.foreground : t.muted).when(s.active, (el) => el.font_bold())
         .child(s.branch ?? s.name));
@@ -521,7 +523,7 @@ export default class TuiSide extends View {
             // A release outside any space cancels the drag.
             .on_mouse_up("left", (_e, cx) => { if (this.pressed !== null) { this.pressed = null; this.over = null; cx.notify(); } })
             .children(machines().map(machine)))
-          .child(label("Spaces")));
+          .child(label("spaces")));
     } else {
       root = sized(v_flex().size_full())
         .child(card(v_flex().flex_1().min_h(0))
@@ -533,20 +535,20 @@ export default class TuiSide extends View {
               .when(ags.length === 0, (el) => el.child(div().px(10).py(6).text_size(12.5).text_color(t.dim)
                 .child("No agents here yet. Start one from the picker (ctrl-b w) or ctrl-b c.")))
               .children(ags.map(agent))))
-          .child(label("Agents", waiting)));
+          .child(label("agents", waiting)));
     }
     // The bottom panel in both states: the usage numbers, the window
     // controls the system doesn't draw on Linux and the app's settings —
     // spread across the width expanded, stacked in the rail, where the
     // chevron turns » and unfolds.
-    const panel = v_flex().flex_none().mt(2).mx(3).mb(3).rounded(6).border_1().border_color(t.border).bg(shade(t.background, "c7"));
+    const panel = v_flex().flex_none().mt(2).mx(3).mb(5).rounded(6).border_1().border_color(t.border).bg(shade(t.background, "c7"));
     const btns = [
       ["cs-win-close", "workspace-chrome/x", "window.close"],
       ["cs-win-min", "workspace-chrome/minus", "window.minimize"],
       ["cs-win-max", "workspace-chrome/square", "window.maximize"],
       ["cs-settings", "workspace-chrome/settings", "app.settings"],
-      ["cs-help", "herdr-tui-layout-side/question-mark",
-        () => openOverlay({ mod: "herdr-tui-layout-help", kind: "dialog", frame: "none", width: 560, height: 560 })],
+      ["cs-help", "greasy-panes-side/question-mark",
+        () => openOverlay({ mod: "greasy-panes-help", kind: "dialog", frame: "none", width: 560, height: 560 })],
     ];
     if (folded) {
       panel.px(2).py(4).gap(2).items_center();

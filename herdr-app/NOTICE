@@ -1,15 +1,15 @@
-herdr-tui-layout, a layout for the Herdr app. Not affiliated with Herdr.
+greasy-panes, a layout for the Herdr app. Not affiliated with Herdr.
 
 These mods are modified copies of mods shipped with the Herdr app,
 used under the Apache License 2.0 (see LICENSE); each main.js says
 what changed:
-  mods/herdr-tui-layout-help
-  mods/herdr-tui-layout-menu
-  mods/herdr-tui-layout-picker
-  mods/herdr-tui-layout-prompt
-  mods/herdr-tui-layout-worktree
+  mods/greasy-panes-help
+  mods/greasy-panes-menu
+  mods/greasy-panes-picker
+  mods/greasy-panes-prompt
+  mods/greasy-panes-worktree
 
-mods/herdr-tui-layout-worktree also carries its base branch field and
+mods/greasy-panes-worktree also carries its base branch field and
 startup script picker, ported from the herdrtw layout
 (https://github.com/luqastw/herdrtw, mods/herdrtw/parts/worktree.js) —
 itself a modified copy of the same Herdr mod, Apache-2.0.

@@ -1,5 +1,5 @@
 {
-  "_comment": "Keymap parity for the herdr-tui-layout on Linux. install.sh applies this to the person's keys.json; uninstall.sh reverts it. remove_defaults: Herdr's stock bindings for commands the layout's ctrl-b keys already provide — dropped so there is one way each.",
+  "_comment": "Keymap parity for the greasy-panes on Linux. install.sh applies this to the person's keys.json; uninstall.sh reverts it. remove_defaults: Herdr's stock bindings for commands the layout's ctrl-b keys already provide — dropped so there is one way each.",
   "remove_defaults": {
     "ctrl-shift-t": "tab.new",
     "ctrl-pagedown": "tab.next",

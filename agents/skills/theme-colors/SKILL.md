@@ -55,5 +55,5 @@ mint), indigo/violet, orangeish yellows. Their hand-picked hexes:
   it looked bad. Do not build one again unless asked.
 
 A working reference that follows all of this:
-`herdr-app/themes/herdr-tui-layout.json` in the DotVibes repo (live in
+`herdr-app/themes/Floracotta.json` in the DotVibes repo (live in
 `~/.config/herdr-app/themes/`).

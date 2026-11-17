@@ -6,7 +6,7 @@
     14,
     14
   ],
-  "theme": "herdr-tui-layout",
+  "theme": "Floracotta",
   "font": "Monaspace Argon NF",
   "font_size": 12.5,
   "font_weight": 400,
@@ -40,7 +40,7 @@
           },
           "min": 80,
           "content": {
-            "mod": "herdr-tui-layout-side",
+            "mod": "greasy-panes-side",
             "props": {
               "part": "spaces"
             }
@@ -55,7 +55,7 @@
           },
           "min": 80,
           "content": {
-            "mod": "herdr-tui-layout-side",
+            "mod": "greasy-panes-side",
             "props": {
               "part": "agents"
             }
@@ -101,18 +101,12 @@
             "px": 4
           },
           "content": {
-            "mod": "herdr-tui-layout-tabs"
+            "mod": "greasy-panes-tabs"
           }
         }
       ]
     }
   ],
-  "terminal_menu": "herdr-tui-layout-menu",
-  "preview": "layouts/herdr-tui-layout.png",
-  "colors": {
-    "muted": "#ff0000",
-    "hover": "#00ff00",
-    "selected": "#0000ff",
-    "border": "#ffff00"
-  }
+  "terminal_menu": "greasy-panes-menu",
+  "preview": "layouts/greasy-panes.png"
 }

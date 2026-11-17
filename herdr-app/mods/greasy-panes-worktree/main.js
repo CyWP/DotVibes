@@ -168,7 +168,7 @@ export default class Worktree extends View {
     this.scriptFocused = false;
     cx.spawn(async (cx) => {
       try {
-        const raw = await readTextFile(`${appHome()}/mods/herdr-tui-layout-worktree/scripts.json`);
+        const raw = await readTextFile(`${appHome()}/mods/greasy-panes-worktree/scripts.json`);
         this.scriptsRaw = raw;
         const list = JSON.parse(raw ?? "[]").filter((x) => x && x.name && x.command);
         this.scripts = [{ name: "No script" }, ...list, { name: "Custom…", custom: true }];
@@ -246,7 +246,7 @@ export default class Worktree extends View {
     const name = command.length > 36 ? `${command.slice(0, 35)}…` : command;
     const list = [...this.scripts.filter((x) => x.command), { name, command }];
     const text = JSON.stringify(list.map(({ name, command }) => ({ name, command })), null, 2);
-    try { await writeTextFile(`${appHome()}/mods/herdr-tui-layout-worktree/scripts.json`, text, this.scriptsRaw); }
+    try { await writeTextFile(`${appHome()}/mods/greasy-panes-worktree/scripts.json`, text, this.scriptsRaw); }
     catch (error) { this.error = `Could not save the script: ${error}`; return cx.notify(); }
     this.scriptsRaw = text;
     this.scripts = [{ name: "No script" }, ...list, { name: "Custom…", custom: true }];

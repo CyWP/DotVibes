@@ -1,5 +1,5 @@
 #!/bin/sh
-# Install herdr-tui-layout into the Herdr app (herdr-app).
+# Install greasy-panes into the Herdr app (herdr-app).
 #
 #   ./scripts/install.sh                 install, or bring an earlier install up to date
 #   ./scripts/install.sh --usage-hook    also set up the status line's Claude usage numbers
@@ -19,7 +19,7 @@ set -eu
 
 here=$(cd "$(dirname "$0")/.." && pwd)
 home="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
-name=herdr-tui-layout
+name=greasy-panes
 hook=0 switch=1
 for a in "$@"; do
   case "$a" in
@@ -41,7 +41,7 @@ fresh=0
 if [ "$fresh" -eq 1 ]; then
   # What this would replace.
   taken=""
-  for p in "layouts/$name.json" "themes/$name.json" "backgrounds/bg.png"; do
+  for p in "layouts/$name.json" "themes/Floracotta.json" "backgrounds/bg.png"; do
     if [ -e "$home/$p" ]; then taken="$taken $p"; fi
   done
   for m in "$here"/mods/*/; do
@@ -65,7 +65,7 @@ put() { # $1 = repo file, $2 = destination dir: copy unless already identical
 }
 put "$here/layouts/$name.json" "$home/layouts"
 put "$here/layouts/$name.png" "$home/layouts"
-put "$here/themes/$name.json" "$home/themes"
+put "$here/themes/Floracotta.json" "$home/themes"
 # The background lives outside this repo: the layout points at the app home's
 # backgrounds/bg.png, so a picture changed in Herdr is never repo content.
 # Seed it from the repo's wallpaper asset only when there isn't one.

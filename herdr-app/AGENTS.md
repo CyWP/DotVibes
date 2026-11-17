@@ -1,6 +1,6 @@
 # For coding agents working on this repo
 
-herdr-tui-layout is a layout for herdr-app (the Herdr desktop app) that looks
+greasy-panes is a layout for herdr-app (the Herdr desktop app) that looks
 and works like herdr-tui (the terminal herdr). It is plain files: a layout
 JSON, a theme, seven mods in JavaScript on Herdr's gpui-kit, and a keys file.
 

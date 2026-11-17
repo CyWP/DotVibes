@@ -1,4 +1,4 @@
-# herdr-tui-layout
+# greasy-panes
 
 herdr-tui's look and keys (the terminal herdr), inside herdr-app. A dark coffee-brown
 window in Menlo 12.5: on the left, your spaces grouped by machine, each on one
@@ -11,12 +11,12 @@ shown tab's segment lit. Panes are rounded cards with a 1px border that turns
 orange on the one you're typing in. `ctrl-b` drives it like herdr-tui does.
 A community layout for herdr-app, not herdr-tui itself; not affiliated with Herdr.
 
-![herdr-tui-layout](layouts/herdr-tui-layout.png)
+![greasy-panes](layouts/greasy-panes.png)
 
 ## What you see
 
 The theme is the person's own palette on warm grey surfaces
-(`themes/herdr-tui-layout.json`): terminal `#242320` on `#e7e2d6`; bars and
+(`themes/Floracotta.json`): terminal `#242320` on `#e7e2d6`; bars and
 sidebar `#1b1a17`; blocks, tabs and dialogs `#2d2b27`; hover `#3a3730`;
 selected `#484439`; borders `#514d43`; accent `#afc8a6` (soft sage —
 borders, tabs, branch names and cursor; mint `#35d6a4` stays the terminal
@@ -83,7 +83,7 @@ Top to bottom:
      you're in is on
      `#484439` with its name orange; one that needs you is tinted red.
    - Each card carries its name at the bottom, in the agent description's
-     lettering (12.5, muted) — `Spaces` on the top card, `Agents` on the
+     lettering (12.5, muted) — `spaces` on the top card, `agents` on the
      bottom one; when agents need you, `· 2 need you` in red follows it.
    - **A status panel at the bottom:** its own small panel below the agents
      card, the cards' skin (rounded 6, 1px border, the same translucent
@@ -135,7 +135,7 @@ Top to bottom:
   remote branches while the field is focused (↑↓ move, tab picks, the list
   follows what you type); a base that names a remote branch is fetched
   first. The startup script dropdown offers `No script`, the scripts saved
-  in `mods/herdr-tui-layout-worktree/scripts.json` and `Custom…` (type a
+  in `mods/greasy-panes-worktree/scripts.json` and `Custom…` (type a
   command, save it on the spot; a repo with `artisan`/`composer.json`
   preselects a saved `composer install`, one with `package.json` a saved
   `yarn install`). Enter creates: the branch name is validated, a branch
@@ -181,8 +181,8 @@ Top to bottom:
 
 ## Built from
 
-- **Layout** (`layouts/herdr-tui-layout.json`): a row (`titlebar: "none"`,
-  `traffic_lights` `[14, 14]`, `terminal_menu: "herdr-tui-layout-menu"`,
+- **Layout** (`layouts/greasy-panes.json`): a row (`titlebar: "none"`,
+  `traffic_lights` `[14, 14]`, `terminal_menu: "greasy-panes-menu"`,
   `background` the wallpaper image `backgrounds/bg.png` in the app home
   (a copy of DotVibes' `appearance/bg.png`, seeded by the installer; see
   above) (`fit: "cover"`), `terminal_opacity: 0.68`):
@@ -190,14 +190,14 @@ Top to bottom:
   40–480, gap 5, no padding — the mod draws the cards so the margins can
   differ per side: 4 at the top and bottom, 3 at the sides) holding
   `side-spaces` and `side-agents`
-  (blocks, weight 1, min 80, both `window_drag`; both `herdr-tui-layout-side` with `props.part`
+  (blocks, weight 1, min 80, both `window_drag`; both `greasy-panes-side` with `props.part`
    `"spaces"` / `"agents"`), and `work` (column, resizable false so the
    hairline can't be stretched, padding `[3, 6]`, gap 3) holding
-   `tabsbar` (block, 2px, `window_drag`, `herdr-tui-layout-tabs`) and
+   `tabsbar` (block, 2px, `window_drag`, `greasy-panes-tabs`) and
   `main` (block, no padding, `{ tab: "active" }` with pane frames: gap
   6, radius 6, no fill (the background paint shows through), border
   `border`, focus `accent`, `lone: true`, no header).
-- **herdr-tui-layout-side:** `spaces()`, `agents()`, `machines()`, `panes()`,
+- **greasy-panes-side:** `spaces()`, `agents()`, `machines()`, `panes()`,
   `setAgentOrder`, `space.select`, `space.move`, `space.new`, `pane.focus`,
   `layout.resize` (fold to 40, unfold to the width it had, kept in
   `localStorage`), `openOverlay`; polls `hc machine ls --json` for connection
@@ -210,34 +210,34 @@ Top to bottom:
    `picker`, `help`, `rename-tab`,
    `popup-lazygit|btop|yazi` (agents copy). The agents copy also runs the
    status chores: `hostname -s`, `hc machine ls --json` for hostnames, and
-   a `sh` loop reading `~/.local/state/herdr-tui-layout/claude/*.json`;
+   a `sh` loop reading `~/.local/state/greasy-panes/claude/*.json`;
    starts
   popups with `hc run --bg --rm` and shows them as dialog overlays holding
   the terminal, sized as shares of the window.
-- **herdr-tui-layout-tabs:** `spaces()`, `tab.select`; one full-height
+- **greasy-panes-tabs:** `spaces()`, `tab.select`; one full-height
   segment per tab of the shown space, the active one `accent`, the rest
   `border`; its presses pass through, so the 2px hairline drags the window.
 - **Copies of Herdr's mods** (Apache-2.0, see NOTICE), each opened with
-  `frame: "none"` and drawing its own rounded box: `herdr-tui-layout-menu`
-  (`menu`), `herdr-tui-layout-prompt` (`prompt`),
-  `herdr-tui-layout-worktree` (`worktree`), `herdr-tui-layout-picker`
-  (`picker`), `herdr-tui-layout-help` (`help`). The worktree copy's New
+  `frame: "none"` and drawing its own rounded box: `greasy-panes-menu`
+  (`menu`), `greasy-panes-prompt` (`prompt`),
+  `greasy-panes-worktree` (`worktree`), `greasy-panes-picker`
+  (`picker`), `greasy-panes-help` (`help`). The worktree copy's New
   dialog also carries the base branch field (suggestions from
   `git for-each-ref`, a remote base fetched first) and the startup script
   picker (`scripts.json` next to the mod, custom commands saved there),
   ported from the herdrtw layout (see NOTICE).
 - **extras/claude-usage-hook.sh**, optional: a Claude Code `statusLine`
   command that saves each session's status JSON to
-  `~/.local/state/herdr-tui-layout/claude/<session_id>.json` and prints nothing.
+  `~/.local/state/greasy-panes/claude/<session_id>.json` and prints nothing.
   Install it with `"statusLine": {"type": "command", "command":
   "<path>/claude-usage-hook.sh"}` in `~/.claude/settings.json`.
 
 ## Watch out
 
-- **What it runs and reads:** `hostname`, `hc machine ls`, `git rev-parse` in each space's folder every 15s (to nest worktrees) and `git` in the worktree dialog (creating a worktree validates the branch, probes the checkout for a package manifest and fetches a remote base), `sh -c` (the chosen startup script, as the new space's first terminal), `sh`/`ls`/`stat` over `~/.local/state/herdr-tui-layout/claude/`,
+- **What it runs and reads:** `hostname`, `hc machine ls`, `git rev-parse` in each space's folder every 15s (to nest worktrees) and `git` in the worktree dialog (creating a worktree validates the branch, probes the checkout for a package manifest and fetches a remote base), `sh -c` (the chosen startup script, as the new space's first terminal), `sh`/`ls`/`stat` over `~/.local/state/greasy-panes/claude/`,
   and lazygit/btop/yazi on their keys. No HTTP requests; the dialog's
   `git fetch` talks to the repo's remote, only when the base branch names
-  one. The dialog reads and writes `mods/herdr-tui-layout-worktree/scripts.json`
+  one. The dialog reads and writes `mods/greasy-panes-worktree/scripts.json`
   (saved startup scripts).
 - **Without the usage hook** the agents half's status line just leaves
   model, ctx, 5h and week out. The hook applies to every Claude Code session
@@ -266,7 +266,7 @@ Top to bottom:
   needs a number), and look at the window: `line_height(15)` is fifteen
   times the text size, not 15px.
 - **Saved drags beat the file:** a dragged boundary is kept in
-  `layouts/.state/` and overrides `layouts/herdr-tui-layout.json`. A state
+  `layouts/.state/` and overrides `layouts/greasy-panes.json`. A state
   saved by an older install may still carry a removed block's size; it's
   harmless when no block has that id.
 - **Worktree nesting** asks git, never names: a space's `folder` can be

@@ -178,11 +178,11 @@ undo_component() {
       # undo herdr-app/install.sh: the copies it made, what a first install moved
       # aside, and the keys.json section it merged (the newest keys.json
       # backup its installer made stays in backups/ for reference)
-      local app="$HOME/.config/herdr-app" name="herdr-tui-layout" b p
+      local app="$HOME/.config/herdr-app" name="greasy-panes" b p
       if [ ! -d "$app" ]; then
         echo "-> no $app — nothing to undo"
       else
-        for p in "layouts/$name.json" "layouts/$name.png" "themes/$name.json"; do
+        for p in "layouts/$name.json" "layouts/$name.png" "themes/Floracotta.json"; do
           if [ -e "$app/$p" ]; then rm "$app/$p"; echo "-> removed $app/$p"; fi
         done
         for d in "$app"/mods/"$name"-*; do

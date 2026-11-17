@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install.sh — install the herdr-app layout kept in this folder:
 #
-#   herdr-tui-layout  the layout (scripts/install.sh): layout, theme and mods
+#   greasy-panes  the layout (scripts/install.sh): layout, theme and mods
 #                     copied into the app home, keys.json merged (backed up
 #                     first), every mod checked, then switch to the layout
 #
@@ -44,9 +44,9 @@ done
 
 status=0
 if [ "$layout" = 1 ]; then
-  echo "==> herdr-tui-layout"
+  echo "==> greasy-panes"
   if ! "$ROOT/scripts/install.sh" "${pass[@]}"; then
-    echo "warn: herdr-tui-layout install reported an error (see above)" >&2
+    echo "warn: greasy-panes install reported an error (see above)" >&2
     status=1
   fi
 fi
@@ -70,7 +70,7 @@ data = json.loads(raw)
 changed = []
 
 # a stale layout section may still carry the dead "ctrl-b minus" key name
-lay = data.get('layout:herdr-tui-layout')
+lay = data.get('layout:greasy-panes')
 if isinstance(lay, dict) and 'ctrl-b minus' in lay:
     v = lay.pop('ctrl-b minus'); lay['ctrl-b -'] = v
     changed.append('fixed ctrl-b minus -> ctrl-b -')

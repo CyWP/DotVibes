@@ -27,7 +27,7 @@ if [ -z "${color_prompt:-}" ] && command -v tput > /dev/null 2>&1; then
     fi
 fi
 
-# Palette: the herdr theme's colours (herdr-app/themes/herdr-tui-layout.json):
+# Palette: the herdr theme's colours (herdr-app/themes/Floracotta.json):
 #   arrow line   muted #b9b4a6 (the theme's muted grey-beige)
 #   user@host    bright peach #ffaf80 (the brighter orange)
 #   location \w  pastel peach #ffc7a2 (the lighter orange)

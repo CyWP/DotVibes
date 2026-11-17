@@ -1,6 +1,6 @@
 ---
 name: herdr-app
-description: Read ~/.config/herdr-app/AGENTS.md before any herdr-app work. Use whenever the task touches the herdr-app window, herdr-tui-layout, or herdr layouts, mods, themes or keys.json — Herdr's own AGENTS.md and type files are the truth about the API.
+description: Read ~/.config/herdr-app/AGENTS.md before any herdr-app work. Use whenever the task touches the herdr-app window, greasy-panes, or herdr layouts, mods, themes or keys.json — Herdr's own AGENTS.md and type files are the truth about the API.
 ---
 
 # herdr-app

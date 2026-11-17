@@ -21,7 +21,7 @@ command -v herdr-app >/dev/null 2>&1 || { echo "FAIL: herdr-app isn't on PATH"; 
 command -v pnpm >/dev/null 2>&1 || { echo "FAIL: pnpm isn't on PATH (TypeScript runs through it)"; exit 1; }
 [ -n "$types" ] && [ -n "$config" ] || { echo "FAIL: no gpui-kit.d.ts in $orig: open the Herdr app once"; exit 1; }
 
-work=$(mktemp -d "${TMPDIR:-/tmp}/herdr-tui-layout-check.XXXXXX")
+work=$(mktemp -d "${TMPDIR:-/tmp}/greasy-panes-check.XXXXXX")
 trap 'rm -r "$work"' EXIT
 NOISE='TS7005|TS7006|TS7008|TS7022|TS7023|TS7031|TS7034|TS7053|not assignable to parameter of type .`#'
 tsc() { pnpm --package=typescript@5.6.3 dlx tsc -p "$1/jsconfig.json" 2>&1; }

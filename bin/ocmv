@@ -1,0 +1,76 @@
+#!/bin/bash
+# ocmv — move all opencode sessions of one directory to another.
+#
+#   ocmv <old-dir> <new-dir>
+#
+# Use it after renaming/moving a project directory, so its sessions follow.
+# Lists the sessions whose directory is exactly <old-dir> (archived and
+# sub-agent sessions included), asks once, then moves each through opencode's
+# own API (`opencode api post /api/session/<id>/move`) — no direct DB edits.
+# Sessions in subdirectories of <old-dir> are not touched.
+# The move is reversible: run `ocmv <new-dir> <old-dir>`.
+
+set -u
+
+[ $# -eq 2 ] || { echo "usage: ocmv <old-dir> <new-dir>" >&2; exit 2; }
+command -v jq >/dev/null       || { echo "ocmv: jq is required" >&2; exit 1; }
+command -v opencode >/dev/null || { echo "ocmv: opencode not found" >&2; exit 1; }
+
+# The old dir may no longer exist (it was just renamed), so don't require it.
+abspath() { realpath -m -- "$1"; }
+old=$(abspath "$1")
+new=$(abspath "$2")
+
+[ "$old" != "$new" ] || { echo "ocmv: old and new directory are the same" >&2; exit 1; }
+[ -d "$new" ]        || { echo "ocmv: new directory does not exist: $new" >&2; exit 1; }
+
+# Fetch every page for one archived state; print "id<TAB>title" for exact matches.
+list_sessions() {
+  local archived=$1 cursor="" url resp
+  while :; do
+    url="/api/session?limit=200&archived=$archived"
+    [ -n "$cursor" ] && url+="&cursor=$cursor"
+    resp=$(opencode api get "$url" 2>&1) || { echo "ocmv: list failed: $resp" >&2; return 1; }
+    jq -r --arg d "$old" \
+      '.data[] | select(.location.directory == $d) | "\(.id)\t\(.title)"' <<<"$resp" \
+      || { echo "ocmv: bad response: $resp" >&2; return 1; }
+    cursor=$(jq -r '.cursor.next // empty' <<<"$resp")
+    [ -n "$cursor" ] || break
+  done
+}
+
+# The move is applied asynchronously: poll until the session shows the new
+# directory (up to ~10s). $1 = session id, $2 = target directory.
+move_session() {
+  local id=$1 target=$2 out i
+  out=$(opencode api post "/api/session/$id/move" \
+          --data "$(jq -nc --arg d "$target" '{directory: $d}')" 2>&1) \
+    && ! grep -q '^HTTP [45]' <<<"$out" || { echo "$out"; return 1; }
+  for i in $(seq 20); do
+    [ "$(opencode api get "/api/session/$id" 2>/dev/null | jq -r '.data.location.directory')" = "$target" ] \
+      && return 0
+    sleep 0.5
+  done
+  echo "move accepted but session still not in $target"; return 1
+}
+
+mapfile -t rows < <({ list_sessions false; list_sessions true; } | sort -u)
+[ "${#rows[@]}" -gt 0 ] && [ -n "${rows[0]}" ] || { echo "No sessions found in $old"; exit 0; }
+
+echo "Sessions in $old (${#rows[@]}):"
+for r in "${rows[@]}"; do printf '  %s  %s\n' "${r%%$'\t'*}" "${r#*$'\t'}"; done
+echo "→ will be moved to $new"
+read -r -p "Proceed? [y/N] " ans
+[[ $ans == [yY] ]] || { echo "Aborted."; exit 1; }
+
+ok=0 fail=0
+for r in "${rows[@]}"; do
+  id=${r%%$'\t'*}
+  if out=$(move_session "$id" "$new"); then
+    ok=$((ok + 1))
+  else
+    fail=$((fail + 1)); echo "  FAILED $id: $out" >&2
+  fi
+done
+echo "Moved $ok, failed $fail."
+[ "$fail" -eq 0 ]

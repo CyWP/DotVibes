@@ -25,3 +25,6 @@ alias l='ls -CF'
 alias mamba='micromamba'
 
 alias icat='kitten icat'
+
+alias oc='opencode'
+alias nv='nvim'

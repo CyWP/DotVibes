@@ -22,6 +22,7 @@ self-contained `install.sh` (you can also run any of them on its own):
 | `nvim/` | Neovim config (Lua, lazy.nvim) | `~/.config/nvim` |
 | `ghostty/` | `ghostty/config.ghostty` | `~/.config/ghostty/config.ghostty` |
 | `herdr-tui/` | `herdr/config.toml` | `~/.config/herdr/config.toml` |
+| `herdr-app/` | `herdr-tui-layout` layout, theme, mods and keys | copied (not linked) into `~/.config/herdr-app/`; re-running `install.sh` refreshes them |
 | `agents/` | `agents/skills/*`, `agents/commands/*.md` | skills: `~/.claude/skills/*`; commands: `~/.claude/commands/*` **and** `~/.config/opencode/commands/*` |
 | `tmux/` | `tmux/tmux.conf` | `~/.tmux.conf` |
 | `opencode/` | `opencode/cli.json` (CLI/TUI settings: theme, tabs, ...) | `~/.config/opencode/cli.json` |
@@ -195,7 +196,8 @@ per-project default commit `pyrightconfig.json` in the repo root:
 | `<Space>hp` | Preview hunk |
 | `<Space>hs` / `<Space>hr` | Stage / reset hunk |
 | `<Space>tb` | Toggle inline git blame |
-| `<Space>gv` | Open DiffView (diffs/merge) |
+| `<Space>gv0` | DiffView: working changes (diffs/merge) |
+| `<Space>gv1`…`gv9` | DiffView: last N commits combined (`gv1` = last commit) |
 | `<Space>gc` | Close DiffView |
 | `<Space>gh` / `<Space>gH` | File history / whole-repo history |
 
@@ -369,7 +371,8 @@ per-project default commit `pyrightconfig.json` in the repo root:
 | `<Space>hp` | Preview hunk |
 | `<Space>hs` / `<Space>hr` | Stage / reset hunk |
 | `<Space>tb` | Toggle inline git blame |
-| `<Space>gv` | Open DiffView (diffs/merge) |
+| `<Space>gv0` | DiffView: working changes (diffs/merge) |
+| `<Space>gv1`…`gv9` | DiffView: last N commits combined (`gv1` = last commit) |
 | `<Space>gc` | Close DiffView |
 | `<Space>gh` / `<Space>gH` | File history / whole-repo history |
 

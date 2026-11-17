@@ -13,7 +13,8 @@
 # scripts/keys-parity.json; uninstall.sh reverts it. Idempotent.
 #
 # Needs herdr-app on PATH and its home (HERDR_APP_HOME, else
-# ~/.config/herdr-app) opened once; nothing is overwritten without --force.
+# ~/.config/herdr-app) opened once; without them it warns and installs
+# nothing. Re-running refreshes what changed in the repo.
 
 # Source-safe (see the dispatcher note at the bottom): executing it is still
 # the preferred way to run, but `. ./install.sh` is honored too — no state

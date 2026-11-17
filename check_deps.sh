@@ -105,6 +105,13 @@ _check_deps_run() {
     else bucket hard "herdr not found — config can be installed but the tool would be unusable"
     fi
 
+    # --- herdr-app ----------------------------------------------------------------
+    echo
+    echo "== herdr-app (layout: herdr-app/) =="
+    if have herdr-app; then correct "herdr-app"
+    else bucket hard "herdr-app not found — the layout can't be installed until the Herdr app is"
+    fi
+
     # --- claude/agents ---------------------------------------------------------------
     echo
     echo "== claude (config: agents/) =="

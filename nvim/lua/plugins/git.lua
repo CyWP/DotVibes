@@ -43,11 +43,23 @@ return {
       -- the panel reads config.file_panel, not view.file_panel)
       file_panel = { win_config = { position = "right" } },
     },
-    keys = {
-      { "<leader>gv", "<cmd>DiffviewOpen<cr>", desc = "Diff: open" },
-      { "<leader>gc", "<cmd>DiffviewClose<cr>", desc = "Diff: close" },
-      { "<leader>gh", "<cmd>DiffviewFileHistory %<cr>", desc = "Diff: file history" },
-      { "<leader>gH", "<cmd>DiffviewFileHistory<cr>", desc = "Diff: repo history" },
-    },
+    keys = (function()
+      local keys = {
+        { "<leader>gv0", "<cmd>DiffviewOpen<cr>", desc = "Diff: working changes" },
+        { "<leader>gc", "<cmd>DiffviewClose<cr>", desc = "Diff: close" },
+        { "<leader>gh", "<cmd>DiffviewFileHistory %<cr>", desc = "Diff: file history" },
+        { "<leader>gH", "<cmd>DiffviewFileHistory<cr>", desc = "Diff: repo history" },
+      }
+      -- <leader>gv1..9: the last N commits combined (gv1 = the last commit);
+      -- committed changes only, uncommitted work is gv0
+      for n = 1, 9 do
+        keys[#keys + 1] = {
+          "<leader>gv" .. n,
+          "<cmd>DiffviewOpen HEAD~" .. n .. "..HEAD<cr>",
+          desc = "Diff: last " .. n .. (n == 1 and " commit" or " commits"),
+        }
+      end
+      return keys
+    end)(),
   },
 }

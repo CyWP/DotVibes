@@ -30,8 +30,7 @@ Behind everything, the layout paints its background with `backgrounds/bg.png`
 DotVibes' wallpaper (`appearance/bg.png`), seeded there by
 `scripts/install.sh`. The image itself is not in this repo — changing the
 picture in Herdr edits the app-home file, outside the repo; the installer
-only re-seeds it when the file is missing (as --force does after backing
-the old one up). Every surface mutes it itself: the terminals paint their own surface
+only seeds it when the file is missing. Every surface mutes it itself: the terminals paint their own surface
 a touch more transparent than stock (`terminal_opacity: 0.68` on the
 root — measured at ~78% coverage against the raw wallpaper), the
 sidebar's two cards carry the same base (`bg(t.background + "c7")` in

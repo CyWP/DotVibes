@@ -175,7 +175,7 @@ undo_component() {
       done
       ;;
     herdr-app)
-      # undo herdr-app/install.sh: the copies it made, what --force moved
+      # undo herdr-app/install.sh: the copies it made, what a first install moved
       # aside, and the keys.json section it merged (the newest keys.json
       # backup its installer made stays in backups/ for reference)
       local app="$HOME/.config/herdr-app" name="herdr-tui-layout" b p
@@ -189,7 +189,7 @@ undo_component() {
           [ -d "$d" ] || continue
           rm -rf "$d"; echo "-> removed $d"
         done
-        # what --force moved aside before copying: restore the newest backup
+        # what a first install moved aside before copying: restore the newest backup
         b=$(ls -1d -- "$app/backups/$name"-* 2>/dev/null | LC_ALL=C sort | tail -1)
         if [ -n "$b" ]; then
           while IFS= read -r p; do

@@ -9,8 +9,18 @@
     "ctrl-v": "terminal.paste_image",
     "ctrl-insert": "terminal.copy",
     "shift-insert": "terminal.paste",
-    "shift-pageup": {"command": "terminal.scroll", "args": {"pages": -1}},
-    "shift-pagedown": {"command": "terminal.scroll", "args": {"pages": 1}}
+    "shift-pageup": {
+      "command": "terminal.scroll",
+      "args": {
+        "pages": -1
+      }
+    },
+    "shift-pagedown": {
+      "command": "terminal.scroll",
+      "args": {
+        "pages": 1
+      }
+    }
   },
   "layout:greasy-panes": {
     "ctrl-b c": "tab.new",

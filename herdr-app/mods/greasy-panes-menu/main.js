@@ -8,9 +8,6 @@
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { run, props, closeOverlay, openOverlay, theme, keys, terminals, spaces, panes, exec } from "herdr";
-// Theme colours may already carry an alpha (#rrggbbaa); only shade the plain ones.
-const shade = (c, a) => (c && c.length > 7 ? c : c + a);
-
 
 // greasy-panes's rename dialog (greasy-panes-prompt, which draws its own rounded box)
 // instead of Herdr's, whose square background pokes out of the app's frame.
@@ -143,10 +140,10 @@ export default class Menu extends View {
       .size_full()
       .min_h(0)
       .p(5)
-      .rounded(6)
+      .rounded(7)
       .border_1()
       .border_color(t.border)
-      .bg(shade(t.popover, "c7"))
+      .bg(t.popover)
       .text_size(12.8)
       .on_key_down((e, cx) => {
         if (e.key === "down") this.at = (this.at + 1) % list.length;
@@ -169,7 +166,7 @@ export default class Menu extends View {
             .items_center()
             .justify_between()
             .text_color(t.foreground)
-            .when(i === this.at, (el) => el.bg(shade(t.selected, "b3")))
+            .when(i === this.at, (el) => el.bg(t.selected))
             // The selection follows the pointer, so the row under it is the
             // selected one: one look, no separate hover colour on top.
             .on_hover((hovered, cx) => { if (hovered && this.at !== i) { this.at = i; cx.notify(); } })

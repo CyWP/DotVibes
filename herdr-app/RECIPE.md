@@ -43,23 +43,25 @@ this theme's chrome, so it belongs to this theme only.
 
 Top to bottom:
 
-1. **Sidebar, top half: spaces.** A rounded card with a 1px border,
-   muting like the terminals — the card itself paints the terminal
-   surface at ~78%. Inside, one panel per machine (transparent; the rows
-   sit directly on the card's base),
-   3px from the card's edges on every side and 6px between blocks.
-   - The block's first row is the machine: `▾ Local` (this Mac) or its name,
-     bold; `+` to start a space there; a 7px dot, green connected, yellow
-     with `◐ reconnecting`, red with `unreachable`. Click the row to fold the
-     machine to `▸`; folded, it shows the most urgent agent status inside it.
-   - Then one line per space: its name (bold and on a `#484439` background
-     when shown, cut at 150px), its branch in orange as `⎇ main` (or its
-     folder, dim, when it has no branch and the folder isn't its name), and
-     its tab count at the right when it has more than one tab.
+1. **Sidebar, top half: spaces.** One panel per machine, in machine order —
+   each a rounded card with a 1px border painting the terminal surface at
+   ~78%, 6px apart (4px above the first, flush to the divider below the
+   last). Open panels share the block's height; a folded one slinks to
+   just its label.
+   - The card's bottom label is the machine's name, lowercase, in the discreet
+     12.5/muted lettering with a 6px link dot — green connected, yellow with
+     `◐ reconnecting`, red unreachable; clicking the label folds the
+     machine to just that label, and a folded one shows the most urgent
+     agent status inside it as a second dot.
+   - One line per space: its name in its status colour (muted when no
+     agent runs there), bold and on a `#484439` background when shown, cut
+     at 150px — no status dots anywhere — followed by its folder, dim,
+     when the folder isn't the name. The shown space's git branch lives in
+     its own panel (below).
    - A worktree space sits under its repo's space on a drawn tree: a 1px
-     trunk and a 10px twig, the trunk stopping halfway on the last one, then
-     a status mark and its branch. An orange `▾` at the right end of the
-     repo's row folds them to `▸`.
+     trunk and a 10px twig in the border colour (fainter than the text),
+     the trunk stopping halfway on the last one, then
+     its branch, its name in its status colour like every row.
    - Which repo: git, asked in each space's live folder (its first
      terminal's `cwd`, else its folder) every 15s: a space is a worktree when
      `--git-common-dir` isn't its `--show-toplevel`'s `.git`, and it nests
@@ -74,17 +76,20 @@ Top to bottom:
    lightens to the muted. Nothing shows when the space has no tabs. No
    `+`: new tabs come from `ctrl-b c` or the picker.
 3. **Sidebar, bottom half: agents.** A draggable divider between the halves.
-   - The same stacked sub-panel as the machines: one panel per half
-     (transparent; the rows sit on the card's base, 3px from the card's
-     edges) holding the rows.
-   - One row per agent: `●` / `○` / `·` in its status colour, the space name
-     bold, `· <tab name or number>` dim; under it, what the agent's terminal
+   - The rows sit directly on the card's base, their highlights touching
+     the card's edges like in the machine panels.
+   - One row per agent: its space name in its status colour (white when
+     it reports none), bold only on the agent you're in; under it, what the
+     agent's terminal
      is titled without the program's short name (`OC | …`), muted. The agent
      you're in is on
      `#484439` with its name orange; one that needs you is tinted red.
    - Each card carries its name at the bottom, in the agent description's
-     lettering (12.5, muted) — `spaces` on the top card, `agents` on the
-     bottom one; when agents need you, `· 2 need you` in red follows it.
+     lettering (12.5, muted) — `agents` on the bottom card; when agents need you, `· 2 need you` in red follows it.
+   - **A branch panel** between the agents card and the status panel, the
+     cards' skin: the shown space's git branch (muted) with the git-branch
+     icon at the right; `detached` when the checkout has no branch, `no
+     repo` (dim) when the space isn't in one. Expanded state only.
    - **A status panel at the bottom:** its own small panel below the agents
      card, the cards' skin (rounded 6, 1px border, the same translucent
      base); the three panels sit 6px apart. Inside: the focused
@@ -96,7 +101,8 @@ Top to bottom:
      workspace-chrome mod, plus this mod's own question mark), spread
      evenly across the panel's width: `×` closes (tinted red under
      the pointer), `–` minimizes, `□` maximizes (toggles), `⚙` opens
-     Settings, `?` opens the keybinds overlay, `«` folds the sidebar.
+     Settings, `?` opens the keybinds panel, `🔍` the command palette,
+     `«` folds the sidebar.
 4. **Folded sidebar, 40px.** All three panels stay. Spaces as their number
    on their machine with a status mark (`1○ 2· 3●`), other machines opening
    with `▾2`, `▾3`; the shown space highlighted; agents below as their
@@ -112,7 +118,7 @@ Top to bottom:
    at the window's sides.
 6. **Popups and dialogs** (right-click menus, rename, worktree, help,
    picker) draw their own translucent box — the popover colour at ~78%,
-   like the panels — with 6px corners and a 1px border; the menu's
+   like the panels — with the settings sheet's 7px corners and a 1px border; the menu's
    selected row is the selection colour at ~70% and follows the pointer.
 
 ## How it behaves
@@ -168,7 +174,7 @@ Top to bottom:
   down / up / right (left and up split right or down and swap, since
   pane.split only makes right/down), `x` close pane, `z` or `m` zoom,
   `h j k l` move between panes; `b` hide the sidebar, `shift-b` fold it
-  to its strip and back; `shift-/` (or `?`) help; `s` settings;
+  to its strip and back; `shift-/` (or `?`) the keybinds panel; `s` settings;
   `alt-g` lazygit, `alt-b` btop, `alt-f` yazi, each in a floating terminal
   (80% / 90% of the window) that closes when the program exits.
 - Install also merges a `terminal` section into the person's keys.json
@@ -291,7 +297,7 @@ Top to bottom:
   its width. Dragging the sidebar's empty space moves the window.
 - `ctrl-b c` opens a tab; `ctrl-b alt-g` opens lazygit floating over the
   tab, gone when it quits.
-- Right-click a space → Rename opens a dialog with 6px corners and no notch.
+- Right-click a space → Rename opens a dialog with 7px corners and no notch.
 - With the usage hook installed and a Claude session running, the agents
   half's bottom line shows its model and ctx, and 5h and week turn yellow
   past 50%.

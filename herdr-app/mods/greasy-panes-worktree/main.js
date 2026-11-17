@@ -13,9 +13,6 @@
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input, Scrollbar } from "gpui-base";
 import { run, props, closeOverlay, theme, spaces, panes, exec, home, appHome, readTextFile, writeTextFile } from "herdr";
-// Theme colours may already carry an alpha (#rrggbbaa); only shade the plain ones.
-const shade = (c, a) => (c && c.length > 7 ? c : c + a);
-
 
 // Where a space is now: its first terminal's live folder, else where it was made.
 function place(s) {
@@ -486,14 +483,14 @@ export default class Worktree extends View {
       .size_full()
       .p(16)
       .gap(10)
-      .rounded(6).border_1().border_color(t.border).bg(shade(t.popover, "c7"))
+      .rounded(7).border_1().border_color(t.border).bg(t.popover)
       .text_size(13)
       .child(h_flex().child(div().flex_1().font_semibold().text_color(t.foreground).child(`Open worktree${r ? ` of ${r.name}` : ""}`)).child(div().text_size(11).text_color(t.dim).child(r ? count : "")))
       .when(r === undefined || (r && this.list === undefined), (el) => el.child(div().text_color(t.muted).child("\u2026")))
       .when(r === null, (el) => el.child(div().text_color(t.muted).child(`${this.folder ? tilde(this.folder, this.userHome ?? "") : "This folder"} is not in a git repository.`)))
       .when(Boolean(r && this.list), (el) =>
         el
-          .child(Input.new(this.input).h(32).px(10).items_center().rounded(6).border(1).border_color(this.inputFocused ? t.accent : t.input).bg(t.background).text_color(t.foreground))
+          .child(Input.new(this.input).h(32).px(10).items_center().rounded(7).border(1).border_color(this.inputFocused ? t.accent : t.input).bg(t.background).text_color(t.foreground))
           .child(
             div()
               .relative()
@@ -538,7 +535,7 @@ export default class Worktree extends View {
       .size_full()
       .p(16)
       .gap(10)
-      .rounded(6).border_1().border_color(t.border).bg(shade(t.popover, "c7"))
+      .rounded(7).border_1().border_color(t.border).bg(t.popover)
       .text_size(13)
       .child(div().font_semibold().text_color(t.foreground).child(title))
       .child(div().text_color(t.muted).child(detail))
@@ -552,7 +549,7 @@ export default class Worktree extends View {
               .h(32)
               .px(10)
               .items_center()
-              .rounded(6)
+              .rounded(7)
               .border(1)
               .border_color(this.inputFocused ? t.accent : t.input)
               .bg(t.background)
@@ -564,7 +561,7 @@ export default class Worktree extends View {
               .h(32)
               .px(10)
               .items_center()
-              .rounded(6)
+              .rounded(7)
               .border(1)
               .border_color(this.baseFocused ? t.accent : t.input)
               .bg(t.background)
@@ -573,7 +570,7 @@ export default class Worktree extends View {
           .when(this.suggestions().length > 0, (e) =>
             e.child(
               v_flex()
-                .rounded(6)
+                .rounded(7)
                 .border(1)
                 .border_color(t.border)
                 .bg(t.popover)
@@ -603,7 +600,7 @@ export default class Worktree extends View {
               .px(10)
               .items_center()
               .justify_between()
-              .rounded(6)
+              .rounded(7)
               .border(1)
               .border_color(this.scriptFocused || this.scriptOpen ? t.accent : t.input)
               .bg(t.background)
@@ -623,7 +620,7 @@ export default class Worktree extends View {
                     .flex_1()
                     .px(10)
                     .items_center()
-                    .rounded(6)
+                    .rounded(7)
                     .border(1)
                     .border_color(this.customFocused ? t.accent : t.input)
                     .bg(t.background)
@@ -637,7 +634,7 @@ export default class Worktree extends View {
                       .px(10)
                       .flex()
                       .items_center()
-                      .rounded(6)
+                      .rounded(7)
                       .border(1)
                       .border_color(t.input)
                       .text_size(12)
@@ -652,7 +649,7 @@ export default class Worktree extends View {
           .when(this.scriptOpen, (e) =>
             e.child(
               v_flex()
-                .rounded(6)
+                .rounded(7)
                 .border(1)
                 .border_color(t.border)
                 .bg(t.popover)

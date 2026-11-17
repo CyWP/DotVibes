@@ -6,7 +6,7 @@
 // context, the account's 5-hour and weekly use, the machine and the time.
 import { View, div, svg } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { spaces, agents, machines, panes, run, theme, home, props, setAgentOrder, openOverlay, hc, nextCommand, exec, focused, notify, setShared } from "herdr";
+import { spaces, agents, machines, panes, run, theme, home, props, setAgentOrder, openOverlay, hc, nextCommand, exec, focused, notify, setShared, shared } from "herdr";
 
 // greasy-panes's rename dialog (greasy-panes-prompt, which draws its own rounded box)
 // instead of Herdr's, whose square background pokes out of the app's frame.
@@ -64,8 +64,6 @@ export default class TuiSide extends View {
     // A worktree's common dir is its repo's .git, so it nests under the space
     // holding that repo's main checkout, whatever either folder is called.
     this.git = {};
-    // Repos (by space id) whose worktrees are folded away, as the old herdr's ▸.
-    try { this.repoShut = new Set(JSON.parse(localStorage.getItem("repoShut") ?? "[]")); } catch { this.repoShut = new Set(); }
     // What the old top line carried, drawn by the agents copy: the Claude
     // usage reports. The spaces copy skips that poll.
     this.usage = [];
@@ -106,17 +104,13 @@ export default class TuiSide extends View {
       const opts = { cwd: where, on: s.machine };
       const top = await exec("git", ["rev-parse", "--show-toplevel"], opts).catch(() => null);
       const common = await exec("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], opts).catch(() => null);
-      const next = top?.code === 0 && common?.code === 0 ? { top: top.stdout.trim(), common: common.stdout.trim() } : null;
+      const st = top?.code === 0 ? await exec("git", ["status", "--porcelain"], opts).catch(() => null) : null;
+      const dirty = st?.code === 0 && st.stdout.trim() !== "";
+      const next = top?.code === 0 && common?.code === 0 ? { top: top.stdout.trim(), common: common.stdout.trim(), dirty } : null;
       if (JSON.stringify(next) !== JSON.stringify(this.git[s.id] ?? null)) { this.git[s.id] = next; changed = true; }
     }
     // The space picker nests worktrees from this map (it runs no git itself).
     if (changed) { setShared("side.git", this.git); cx.notify(); }
-  }
-
-  foldRepo(id, cx) {
-    if (this.repoShut.has(id)) this.repoShut.delete(id); else this.repoShut.add(id);
-    try { localStorage.setItem("repoShut", JSON.stringify([...this.repoShut])); } catch {}
-    cx.notify();
   }
 
   tasks(cx) {
@@ -324,7 +318,7 @@ export default class TuiSide extends View {
 
     // One row per space: a lifted background marks the shown one. A repo with
     // worktrees under it gets ▾ / ▸ at the right end to fold them.
-    const space = (s, kids = 0) => {
+    const space = (s) => {
       const i = list.indexOf(s);
       return h_flex().id(`cs-${s.id}`).relative().px(10).py(4).gap(8).rounded(4).items_center()
       .when(s.active, (el) => el.bg(shade(t.selected, "b3")))
@@ -348,17 +342,14 @@ export default class TuiSide extends View {
         else if (from === i) run("space.select", { id: s.id });
         cx.notify();
       })
-      // One line: the name, then its branch (or folder) cut short, then tabs.
+      // One line: the name (status-coloured), then its folder when that
+      // isn't the name. The branch lives in its own panel below.
       .child(h_flex().flex_1().min_w(0).gap(8).items_center().text_size(12.5)
-        .child(div().flex_shrink(0).max_w(150).truncate().text_color(s.active ? t.foreground : t.muted).when(s.active, (el) => el.font_bold()).child(s.name))
-        .child(div().flex_1().min_w(0).truncate().text_color(s.branch ? t.accent : t.dim)
-          .child(s.branch ? `⎇ ${s.branch}` : (short(s.folder) || "~") !== s.name ? short(s.folder) : ""))
-        .when(s.tabs.length > 1, (el) => el.child(div().flex_none().text_color(t.dim).child(`${s.tabs.length}`))))
+        .child(div().flex_shrink(0).max_w(150).truncate().text_color(s.status ? tint(s.status) : s.active ? t.foreground : t.muted).when(s.active, (el) => el.font_bold()).child(s.name))
+        .child(div().flex_1().min_w(0).truncate().text_color(t.dim)
+          .child((short(s.folder) || "~") !== s.name ? short(s.folder) : "")))
       .when(Boolean(s.status) && s.status !== "idle", (el) => el.child(dot(s.status)))
-      .when(kids > 0, (el) => el.child(div().id(`cs-fold-${s.id}`).flex_none().w(14).text_size(12.5).text_color(t.accent)
-        .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
-        .on_click((_e, cx) => { cx.stop_propagation(); this.foldRepo(s.id, cx); })
-        .child(this.repoShut.has(s.id) ? "▸" : "▾")));
+
     };
 
     // Worktrees, as the old herdr drew them: under their repo's space, one
@@ -366,7 +357,6 @@ export default class TuiSide extends View {
     // worktree when its repo's .git isn't in its own checkout, and it goes
     // under the space (same machine) whose checkout is that repo's main one.
     const linked = (s) => { const g = this.git[s.id]; return Boolean(g) && g.common !== `${g.top}/.git`; };
-    const ring = (st) => (st === "idle" ? "○" : st ? "●" : "·");
     // The tree is drawn, not typed: ├─ glyphs leave gaps between rows that
     // aren't a terminal's exact cell height. A trunk runs down the left (to
     // the middle on the last row, so it ends in └) and a twig goes right.
@@ -380,10 +370,9 @@ export default class TuiSide extends View {
       .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); this.menu(s); })
       // The elbow: a rounded quarter-turn into the row. Worktrees with a
       // next sibling keep the trunk running through below the curve.
-      .child(div().absolute().left(14).top(last ? -2 : 4).w(10).h(last ? 12 : 6).border_l(1).border_b(1).rounded_bl(6).border_color(t.dim))
-      .when(!last, (el) => el.child(div().absolute().left(14).top(-2).w(1).h(22).bg(t.dim)))
-      .child(div().flex_none().text_color(s.status ? tint(s.status) : t.dim).child(ring(s.status)))
-      .child(div().flex_1().min_w(0).truncate().text_color(s.active ? t.foreground : t.muted).when(s.active, (el) => el.font_bold())
+      .child(div().absolute().left(14).top(last ? -2 : 4).w(10).h(last ? 12 : 6).border_l(1).border_b(1).rounded_bl(6).border_color(t.border))
+      .when(!last, (el) => el.child(div().absolute().left(14).top(-2).w(1).h(22).bg(t.border)))
+      .child(div().flex_1().min_w(0).truncate().text_color(s.status ? tint(s.status) : s.active ? t.foreground : t.muted).when(s.active, (el) => el.font_bold())
         .child(s.branch ?? s.name));
     const tree = (own) => {
       const tops = own.filter((s) => !linked(s));
@@ -395,44 +384,44 @@ export default class TuiSide extends View {
       for (const s of own) {
         if (linked(s) && parent(s)) continue; // drawn under its repo
         const kids = linked(s) ? [] : own.filter((w) => linked(w) && parent(w) === s);
-        rows.push(space(s, kids.length));
+        rows.push(space(s));
         this.displayOrder.push(s.id);
-        if (!this.repoShut.has(s.id)) kids.forEach((w, i) => { rows.push(branchRow(w, i === kids.length - 1)); this.displayOrder.push(w.id); });
-        else kids.forEach((w) => this.displayOrder.push(w.id));
+        kids.forEach((w, i) => { rows.push(branchRow(w, i === kids.length - 1)); this.displayOrder.push(w.id); });
       }
       return rows;
     };
 
-    const machine = (m) => {
+    // One panel per machine, in machines() order: its spaces inside, its
+    // name and link dot as the card's bottom label; the label toggles the
+    // panel. Open panels share the block's height, folded ones slink.
+    const machine = (m, i) => {
       const own = list.filter((s) => (s.machine ?? null) === m.name);
       const link = m.name == null ? "connected" : this.links[m.name] ?? (m.layout === "unavailable" ? "unreachable" : "connected");
       const down = link === "unreachable";
       const back = !down && link !== "connected"; // on its way back: reconnecting
       const key = m.name ?? "";
       const shut = this.shut.has(key);
-      // Shut, the row still shows the most urgent agent status inside it.
+      // Shut, the label still shows the most urgent agent status inside it.
       const worst = own.map((s) => s.status).filter(Boolean).sort((a, b) => (RANK[a] ?? 9) - (RANK[b] ?? 9))[0];
-      return v_flex().mx(3).mt(3).mb(3).pb(4).rounded(6).gap(2)
-        .child(h_flex().id(`cm-${key || "local"}`).px(10).py(5).gap(8).items_center().rounded_t(6).text_size(12.5)
-          .hover((st) => st.bg(shade(t.border, "b3")))
-          .on_click((_e, cx) => this.toggle(key, cx))
-          .child(div().w(10).text_size(12.5).text_color(t.dim).child(shut ? "▸" : "▾"))
-          .child(div().flex_1().truncate().text_color(t.foreground).font_bold().child(m.name ?? "Local"))
-          .when(shut && Boolean(worst) && worst !== "idle", (el) => el.child(dot(worst)))
-          .when(down, (el) => el.child(div().text_size(12.5).text_color(t.blocked).child("unreachable")))
-          .when(back, (el) => el.child(div().text_size(12.5).text_color(t.working).child("◐ reconnecting")))
-          .when(!down && !shut, (el) => el.child(div().id(`cm-new-${key || "local"}`).px(6).rounded(4).text_size(12.5).text_color(t.dim)
-            .hover((st) => st.bg(shade(t.border, "b3")).text_color(t.foreground))
-            .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
-            .on_click((_e, cx) => { cx.stop_propagation(); run("space.new", { machine: key }); }).child("+")))
-          .child(dot(down ? "blocked" : back ? "working" : "done", 7)))
-        .when(!shut, (el) => el.children(tree(own)));
+      const el = shut ? v_flex().flex_none() : v_flex().flex_1().min_h(0);
+      const cardEl = el.text_color(t.foreground)
+        .mt(i === 0 ? 4 : 3).mb(i === ms.length - 1 ? 0 : 3).mx(3)
+        .rounded(6).border_1().border_color(t.border).bg(shade(t.background, "c7"));
+      if (!shut) cardEl.child(v_flex().flex_1().min_h(0).overflow_y_scroll()
+        // A release outside any space cancels the drag.
+        .on_mouse_up("left", (_e, cx) => { if (this.pressed !== null) { this.pressed = null; this.over = null; cx.notify(); } })
+        .children(tree(own)));
+      cardEl.child(h_flex().flex_none().px(10).pb(4).pt(1).gap(6).items_center()
+        .on_click((_e, cx) => this.toggle(key, cx))
+        .child(div().text_size(12.5).text_color(t.muted).child((m.name ?? "local").toLowerCase()))
+        .when(shut && Boolean(worst) && worst !== "idle", (el2) => el2.child(dot(worst)))
+        .child(dot(down ? "blocked" : back ? "working" : "done", 4)));
+      return cardEl;
     };
 
     // As the old herdr's agents list: a ring or dot, the space · its tab, and
     // under it what the agent is doing. Every agent here is Claude Code, so
     // the program isn't repeated on each row.
-    const mark = (st) => (st === "idle" ? "○" : st ? "●" : "·");
     // The terminal title leads with the program's short name ("OC | …");
     // the row shows just the description after it.
     const desc = (a) => (a.title || "").replace(/^[^|]{1,16}\|\s*/, "") || a.title || "—";
@@ -442,11 +431,9 @@ export default class TuiSide extends View {
       .when(!a.focused, (el) => el.hover((st) => st.bg(shade(t.hover, "b3"))))
       .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
       .on_click(() => { run("space.select", { id: a.space }); run("pane.focus", { pane: a.pane }); })
-      .child(div().w(10).text_size(12.5).text_color(a.status ? tint(a.status) : t.dim).child(mark(a.status)))
       .child(v_flex().flex_1().min_w(0)
         .child(h_flex().gap(6).text_size(12.5)
-          .child(div().flex_shrink(1).min_w(0).truncate().font_bold().text_color(a.focused ? t.accent : t.foreground).child(a.space_name))
-          .child(div().flex_none().text_color(t.dim).child(`· ${a.tab_name || a.tab_index}`)))
+          .child(div().flex_shrink(1).min_w(0).truncate().text_color(a.status ? tint(a.status) : t.foreground).when(a.focused, (el) => el.font_bold()).child(a.space_name)))
         .child(div().truncate().text_size(12.5).text_color(t.muted).child(desc(a))));
 
     const waiting = ags.filter((a) => a.status === "blocked").length;
@@ -460,7 +447,7 @@ export default class TuiSide extends View {
     // Like the pane frames, the card paints NO fill — the panels inside
     // carry the terminal-surface wash themselves.
     const card = (el) => el.flex_1().min_h(0).text_color(t.foreground)
-      .mt(part === "spaces" ? 4 : 0).mb(part === "spaces" ? 0 : 4).mx(3)
+      .mt(part === "spaces" ? 4 : 0).mb(part === "spaces" ? 0 : 3).mx(3)
       .rounded(6).border_1().border_color(t.border)
       // the same base as the terminals: their surface paints ~78% over the
       // wallpaper (terminal_opacity 0.68, measured), so the cards match
@@ -492,13 +479,13 @@ export default class TuiSide extends View {
     // three panels stay in both states: the rail cards lose their labels
     // and the bottom panel stacks its buttons, with » to unfold.
     const folded = this.width < 60;
+    const ms = machines();
     let root;
     if (folded) {
       const cell = (id, label, st, on, action) => h_flex().id(id).w_full().h(19).px(4).gap(1).justify_center().items_center()
         .rounded(3).text_size(12.5).bg(on ? shade(t.selected, "b3") : shade(t.background, "4d"))
         .when(!on, (el) => el.hover((s) => s.bg(shade(t.hover, "b3")))).on_mouse_down("left", (_e, cx) => cx.stop_propagation()).on_click(action)
-        .child(div().text_color(on ? t.accent : t.muted).when(on, (el) => el.font_bold()).child(label))
-        .child(div().text_size(12.5).text_color(st ? tint(st) : t.dim).child(mark(st)));
+        .child(div().text_color(st ? tint(st) : on ? t.accent : t.muted).when(on, (el) => el.font_bold()).child(label));
       if (part === "spaces") {
         const rail = machines().flatMap((m, mi) => {
           const own = list.filter((s) => (s.machine ?? null) === m.name);
@@ -518,30 +505,36 @@ export default class TuiSide extends View {
       }
     } else if (part === "spaces") {
       root = sized(v_flex().size_full())
-        .child(card(v_flex().flex_1().min_h(0))
-          .child(v_flex().id("cs-spaces").flex_1().min_h(0).overflow_y_scroll()
-            // A release outside any space cancels the drag.
-            .on_mouse_up("left", (_e, cx) => { if (this.pressed !== null) { this.pressed = null; this.over = null; cx.notify(); } })
-            .children(machines().map(machine)))
-          .child(label("spaces")));
+        .children(ms.map((m, i) => machine(m, i)));
     } else {
       root = sized(v_flex().size_full())
         .child(card(v_flex().flex_1().min_h(0))
           .child(v_flex().id("cs-agents").flex_1().min_h(0).overflow_y_scroll()
-            // The agents half wears the same stacked sub-panels as the spaces
-            // half: one raised, 30%-transparent panel holding the rows, 3px
-            // from the card's edges on every side.
-            .child(v_flex().mx(3).mt(3).mb(3).rounded(6)
-              .when(ags.length === 0, (el) => el.child(div().px(10).py(6).text_size(12.5).text_color(t.dim)
-                .child("No agents here yet. Start one from the picker (ctrl-b w) or ctrl-b c.")))
-              .children(ags.map(agent))))
+            .when(ags.length === 0, (el) => el.child(div().px(10).py(6).text_size(12.5).text_color(t.dim)
+              .child("No agents here yet. Start one from the picker (ctrl-b w) or ctrl-b c.")))
+            .children(ags.map(agent)))
           .child(label("agents", waiting)));
     }
+    // The shown space's git branch, in its own small panel between the
+    // agents card and the bottom one (expanded only; the rail is too narrow).
+    const shownSpace = list.find((s) => s.active);
+    // The spaces copy runs the git probe and shares it; read it here.
+    const gitMap = props()?.part === "spaces" ? this.git : shared("side.git") ?? {};
+    const info = shownSpace ? gitMap[shownSpace.id] : null;
+    const inRepo = Boolean(info);
+    const hasBranch = Boolean(shownSpace?.branch);
+    const dirty = Boolean(info?.dirty);
+    const branchPanel = v_flex().flex_none().mt(3).mx(3).mb(3).rounded(6).border_1().border_color(t.border).bg(shade(t.background, "c7"))
+      .px(10).py(5)
+      .child(h_flex().items_center().justify_between()
+        .child(div().min_w(0).truncate().text_size(12.5).text_color(t.muted)
+          .child(hasBranch ? shownSpace.branch : inRepo ? "detached" : "no repo"))
+        .child(svg("mods/workspace-chrome/git-branch.svg").size(13).text_color(!inRepo || !hasBranch ? t.muted : dirty ? t.working : t.accent)));
     // The bottom panel in both states: the usage numbers, the window
     // controls the system doesn't draw on Linux and the app's settings —
     // spread across the width expanded, stacked in the rail, where the
     // chevron turns » and unfolds.
-    const panel = v_flex().flex_none().mt(2).mx(3).mb(5).rounded(6).border_1().border_color(t.border).bg(shade(t.background, "c7"));
+    const panel = v_flex().flex_none().mt(3).mx(3).mb(5).rounded(6).border_1().border_color(t.border).bg(shade(t.background, "c7"));
     const btns = [
       ["cs-win-close", "workspace-chrome/x", "window.close"],
       ["cs-win-min", "workspace-chrome/minus", "window.minimize"],
@@ -549,6 +542,7 @@ export default class TuiSide extends View {
       ["cs-settings", "workspace-chrome/settings", "app.settings"],
       ["cs-help", "greasy-panes-side/question-mark",
         () => openOverlay({ mod: "greasy-panes-help", kind: "dialog", frame: "none", width: 560, height: 560 })],
+      ["cs-search", "workspace-chrome/search", "app.palette"],
     ];
     if (folded) {
       panel.px(2).py(4).gap(2).items_center();
@@ -562,6 +556,9 @@ export default class TuiSide extends View {
     }
     // The bottom panel lives in the agents copy only; the spaces copy is
     // its card alone, in both states.
-    return part === "spaces" ? root : root.child(panel);
+    if (part === "spaces") return root;
+    if (!folded) root = root
+      .when(Boolean(shownSpace), (el) => el.child(branchPanel));
+    return root.child(panel);
   }
 }

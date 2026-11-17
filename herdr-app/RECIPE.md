@@ -21,7 +21,7 @@ sidebar `#1b1a17`; blocks, tabs and dialogs `#2d2b27`; hover `#3a3730`;
 selected `#484439`; borders `#514d43`; accent `#afc8a6` (soft sage —
 borders, tabs, branch names and cursor; mint `#35d6a4` stays the terminal
 green); dim
-text `#9a9484`. Status colours: working `#ffca5f`, needs you `#ff004c`,
+text `#9a9484`. Status colours: working `#ffaf80` (light peach), needs you `#ff004c`,
 done `#afc8a6`, idle `#9a9484`. Every font is Menlo at 12.5px, terminals and
 panels alike; emphasis is bold or dim, never a bigger size.
 
@@ -118,7 +118,7 @@ Top to bottom:
 ## How it behaves
 
 - **Agent status** comes from the agents themselves (Claude Code reports it):
-  working is yellow, done green, needs you red, idle a ring. Agents sort in
+  working is a light peach, done green, needs you red, idle a ring. Agents sort in
   `priority` order: needing you first, then done, working, idle.
   `ctrl-b alt-1..9` jumps to the
   agent in that row.
@@ -168,7 +168,7 @@ Top to bottom:
   down / up / right (left and up split right or down and swap, since
   pane.split only makes right/down), `x` close pane, `z` or `m` zoom,
   `h j k l` move between panes; `b` hide the sidebar, `shift-b` fold it
-  to its strip and back; `shift-/` help; `s` settings;
+  to its strip and back; `shift-/` (or `?`) help; `s` settings;
   `alt-g` lazygit, `alt-b` btop, `alt-f` yazi, each in a floating terminal
   (80% / 90% of the window) that closes when the program exits.
 - Install also merges a `terminal` section into the person's keys.json

@@ -47,6 +47,7 @@
     "ctrl-b b": "layout.toggle:sidebar",
     "ctrl-b shift-b": "herdr-tui-layout-side.fold-toggle",
     "ctrl-b shift-/": "herdr-tui-layout-side.help",
+    "ctrl-b ?": "herdr-tui-layout-side.help",
     "ctrl-b s": "app.settings",
     "ctrl-b alt-g": "herdr-tui-layout-side.popup-lazygit",
     "ctrl-b alt-b": "herdr-tui-layout-side.popup-btop",

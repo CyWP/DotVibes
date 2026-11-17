@@ -470,13 +470,13 @@ export default class TuiSide extends View {
     // maximize-toggle) and the app's settings, as lucide icons tinted with
     // the text colour; closing tints red under the pointer. Assets come
     // from Herdr's shipped workspace-chrome mod.
-    const winBtn = (id, icon, command, th) => div().id(id).px(5).py(4).rounded(4).text_color(th.dim)
+    const winBtn = (id, icon, action, th) => div().id(id).px(5).py(4).rounded(4).text_color(th.dim)
       .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
-      .hover((st) => command === "window.close"
+      .hover((st) => action === "window.close"
         ? st.bg(shade(th.blocked, "b3")).text_color(th.blocked)
         : st.bg(shade(th.hover, "b3")).text_color(th.foreground))
-      .on_click(() => run(command))
-      .child(svg(`mods/workspace-chrome/${icon}.svg`).size(13));
+      .on_click(() => typeof action === "function" ? action() : run(action))
+      .child(svg(`mods/${icon}.svg`).size(13));
 
     // The halves' names at the bottom of each card, in the agent
     // description's lettering (12.5, muted); the agents one carries the
@@ -541,10 +541,12 @@ export default class TuiSide extends View {
     // chevron turns » and unfolds.
     const panel = v_flex().flex_none().mt(2).mx(3).mb(3).rounded(6).border_1().border_color(t.border).bg(shade(t.background, "c7"));
     const btns = [
-      ["cs-win-close", "x", "window.close"],
-      ["cs-win-min", "minus", "window.minimize"],
-      ["cs-win-max", "square", "window.maximize"],
-      ["cs-settings", "settings", "app.settings"],
+      ["cs-win-close", "workspace-chrome/x", "window.close"],
+      ["cs-win-min", "workspace-chrome/minus", "window.minimize"],
+      ["cs-win-max", "workspace-chrome/square", "window.maximize"],
+      ["cs-settings", "workspace-chrome/settings", "app.settings"],
+      ["cs-help", "herdr-tui-layout-side/question-mark",
+        () => openOverlay({ mod: "herdr-tui-layout-help", kind: "dialog", frame: "none", width: 560, height: 560 })],
     ];
     if (folded) {
       panel.px(2).py(4).gap(2).items_center();

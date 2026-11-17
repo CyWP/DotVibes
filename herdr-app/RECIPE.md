@@ -92,10 +92,11 @@ Top to bottom:
      `ctx 11%`, `5h 12%`, `week 13%` (each number green, yellow from 50%, red
      from 80%; hovering 5h or week shows when it resets); below them the
      window controls the system doesn't draw on Linux and the app's
-     settings, as lucide icons (from Herdr's shipped workspace-chrome mod),
-     spread evenly across the panel's width: `×` closes (tinted red under
+     settings and keybinds, as lucide icons (Herdr's shipped
+     workspace-chrome mod, plus this mod's own question mark), spread
+     evenly across the panel's width: `×` closes (tinted red under
      the pointer), `–` minimizes, `□` maximizes (toggles), `⚙` opens
-     Settings, `«` folds the sidebar.
+     Settings, `?` opens the keybinds overlay, `«` folds the sidebar.
 4. **Folded sidebar, 40px.** All three panels stay. Spaces as their number
    on their machine with a status mark (`1○ 2· 3●`), other machines opening
    with `▾2`, `▾3`; the shown space highlighted; agents below as their

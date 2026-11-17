@@ -4,7 +4,7 @@
 // on a strip under it; agents needing you first. The agents copy also draws
 // what the old herdr's top line showed: the focused agent's model and
 // context, the account's 5-hour and weekly use, the machine and the time.
-import { View, div } from "gpui-kit";
+import { View, div, svg } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { spaces, agents, machines, panes, run, theme, home, props, setAgentOrder, openOverlay, hc, nextCommand, exec, focused, notify, setShared } from "herdr";
 
@@ -29,11 +29,9 @@ function rename(kind, id) {
 // Sizes are shares of the window, as there.
 const POPUPS = { lazygit: 0.8, btop: 0.9, yazi: 0.9 };
 
-function clock() {
-  const d = new Date();
-  const h = d.getHours() % 12 || 12, m = String(d.getMinutes()).padStart(2, "0");
-  return `${h}:${m} ${d.getHours() < 12 ? "AM" : "PM"}`;
-}
+// Theme colours may already carry an alpha (#rrggbbaa — e.g. Herdr's default
+// theme's hover); only shade the plain ones, never a colour twice.
+const shade = (c, a) => (c && c.length > 7 ? c : c + a);
 
 // What Claude Code reports about each session (model, context, the account's
 // 5-hour and weekly limits), saved by extras/claude-usage-hook.sh (in this layout's repo), its
@@ -56,9 +54,7 @@ export default class TuiSide extends View {
     this.width = 280;
     // Machines folded shut, by name ("" for this Mac); kept across restarts.
     try { this.shut = new Set(JSON.parse(localStorage.getItem("shut") ?? "[]")); } catch { this.shut = new Set(); }
-    // Agents in "priority" order (needing you first) or by "spaces", as the
-    // old herdr's agents · priority switch.
-    try { this.sort = localStorage.getItem("sort") === "spaces" ? "spaces" : "priority"; } catch { this.sort = "priority"; }
+    // Agents in "priority" order: needing you first, then done, working, idle.
     // Each machine's connection as herdr-core reports it (connected,
     // unreachable, or on its way back), polled: machines() only knows
     // whether a layout document arrived.
@@ -70,29 +66,15 @@ export default class TuiSide extends View {
     this.git = {};
     // Repos (by space id) whose worktrees are folded away, as the old herdr's ▸.
     try { this.repoShut = new Set(JSON.parse(localStorage.getItem("repoShut") ?? "[]")); } catch { this.repoShut = new Set(); }
-    // What the old top line carried, drawn by the agents copy: hosts, the
-    // Claude usage reports and the clock. The spaces copy skips those polls.
-    this.host = "";
-    this.hosts = {};
+    // What the old top line carried, drawn by the agents copy: the Claude
+    // usage reports. The spaces copy skips that poll.
     this.usage = [];
     if ((props()?.part ?? "spaces") === "agents") this.statusTasks(cx);
     this.tasks(cx);
   }
 
-  // The agents copy's status chores: this machine's short hostname, other
-  // machines' own hostnames, the Claude usage reports, and a notify every
-  // 15s for the clock.
+  // The agents copy's status chore: the Claude usage reports.
   statusTasks(cx) {
-    exec("hostname", ["-s"]).then((r) => { this.host = r.stdout.trim(); cx.notify(); }).catch(() => {});
-    const hosts = (cx) => hc(["machine", "ls", "--json"]).then((r) => {
-      const next = {};
-      try { for (const m of JSON.parse(r.stdout).machines ?? []) next[m.name] = m.host || m.name; } catch {}
-      this.hosts = next;
-      cx.notify();
-    }).catch(() => {});
-    hosts(cx);
-    cx.timer.every(60000, hosts);
-    cx.timer.every(15000, (cx) => cx.notify());
     const read = (cx) => exec("sh", ["-c", USAGE]).then((r) => {
       const rows = [];
       for (const line of r.stdout.split("\n")) {
@@ -294,12 +276,6 @@ export default class TuiSide extends View {
     openOverlay({ mod: "herdr-tui-layout-menu", kind: "popup", frame: "none", width: 280, height: 260, props: { tab: "space", target: { id: s.id } } });
   }
 
-  setSort(sort, cx) {
-    this.sort = sort;
-    try { localStorage.setItem("sort", sort); } catch {}
-    cx.notify();
-  }
-
   toggle(key, cx) {
     if (this.shut.has(key)) this.shut.delete(key); else this.shut.add(key);
     try { localStorage.setItem("shut", JSON.stringify([...this.shut])); } catch {}
@@ -340,10 +316,7 @@ export default class TuiSide extends View {
     // raw spaces() order (worktrees created later would otherwise be
     // walked last).
     this.displayOrder = [];
-    const where = (a) => list.findIndex((s) => s.id === a.space);
-    const ags = [...agents()].sort(this.sort === "spaces"
-      ? (a, b) => where(a) - where(b) || a.tab_index - b.tab_index
-      : (a, b) => (RANK[a.status] ?? 9) - (RANK[b.status] ?? 9) || b.seq - a.seq);
+    const ags = [...agents()].sort((a, b) => (RANK[a.status] ?? 9) - (RANK[b.status] ?? 9) || b.seq - a.seq);
     this.order = ags;
     setAgentOrder(ags.map((a) => a.address));
     const tint = (st) => (st ? t[st] ?? t.dim : t.border);
@@ -354,8 +327,8 @@ export default class TuiSide extends View {
     const space = (s, kids = 0) => {
       const i = list.indexOf(s);
       return h_flex().id(`cs-${s.id}`).relative().px(10).py(4).gap(8).rounded(4).items_center()
-      .when(s.active, (el) => el.bg(t.selected + "b3"))
-      .when(!s.active, (el) => el.hover((st) => st.bg(t.border + "b3")))
+      .when(s.active, (el) => el.bg(shade(t.selected, "b3")))
+      .when(!s.active, (el) => el.hover((st) => st.bg(shade(t.border, "b3"))))
       .when(this.pressed === i && this.over !== i, (el) => el.opacity(0.5))
       .when(this.pressed !== null && this.over === i && this.pressed !== i, (el) => el.child(
         div().absolute().left(0).right(0).h(2).bg(t.accent)
@@ -399,8 +372,8 @@ export default class TuiSide extends View {
     // the middle on the last row, so it ends in └) and a twig goes right.
     // The trunk reaches 2px up into the row above to bridge the list's gap.
     const branchRow = (s, last) => h_flex().id(`cs-${s.id}`).relative().h(20).pl(30).pr(10).gap(6).rounded(4).items_center().text_size(12.5)
-      .when(s.active, (el) => el.bg(t.selected + "b3"))
-      .when(!s.active, (el) => el.hover((st) => st.bg(t.border + "b3")))
+      .when(s.active, (el) => el.bg(shade(t.selected, "b3")))
+      .when(!s.active, (el) => el.hover((st) => st.bg(shade(t.border, "b3"))))
       .on_click(() => run("space.select", { id: s.id }))
       // The sidebar block drags the window; rows opt their presses out.
       .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
@@ -439,7 +412,7 @@ export default class TuiSide extends View {
       const worst = own.map((s) => s.status).filter(Boolean).sort((a, b) => (RANK[a] ?? 9) - (RANK[b] ?? 9))[0];
       return v_flex().mx(3).mt(3).mb(3).pb(4).rounded(6).gap(2)
         .child(h_flex().id(`cm-${key || "local"}`).px(10).py(5).gap(8).items_center().rounded_t(6).text_size(12.5)
-          .hover((st) => st.bg(t.border + "b3"))
+          .hover((st) => st.bg(shade(t.border, "b3")))
           .on_click((_e, cx) => this.toggle(key, cx))
           .child(div().w(10).text_size(12.5).text_color(t.dim).child(shut ? "▸" : "▾"))
           .child(div().flex_1().truncate().text_color(t.foreground).font_bold().child(m.name ?? "Local"))
@@ -447,7 +420,7 @@ export default class TuiSide extends View {
           .when(down, (el) => el.child(div().text_size(12.5).text_color(t.blocked).child("unreachable")))
           .when(back, (el) => el.child(div().text_size(12.5).text_color(t.working).child("◐ reconnecting")))
           .when(!down && !shut, (el) => el.child(div().id(`cm-new-${key || "local"}`).px(6).rounded(4).text_size(12.5).text_color(t.dim)
-            .hover((st) => st.bg(t.border + "b3").text_color(t.foreground))
+            .hover((st) => st.bg(shade(t.border, "b3")).text_color(t.foreground))
             .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
             .on_click((_e, cx) => { cx.stop_propagation(); run("space.new", { machine: key }); }).child("+")))
           .child(dot(down ? "blocked" : back ? "working" : "done", 7)))
@@ -458,10 +431,13 @@ export default class TuiSide extends View {
     // under it what the agent is doing. Every agent here is Claude Code, so
     // the program isn't repeated on each row.
     const mark = (st) => (st === "idle" ? "○" : st ? "●" : "·");
+    // The terminal title leads with the program's short name ("OC | …");
+    // the row shows just the description after it.
+    const desc = (a) => (a.title || "").replace(/^[^|]{1,16}\|\s*/, "") || a.title || "—";
     const agent = (a) => h_flex().id(`ca-${a.address}`).px(10).py(4).gap(7).items_start().rounded(4)
-      .when(a.focused, (el) => el.bg(t.selected + "b3"))
-      .when(a.status === "blocked", (el) => el.bg(t.blocked + "1f"))
-      .when(!a.focused, (el) => el.hover((st) => st.bg(t.hover + "b3")))
+      .when(a.focused, (el) => el.bg(shade(t.selected, "b3")))
+      .when(a.status === "blocked", (el) => el.bg(shade(t.blocked, "1f")))
+      .when(!a.focused, (el) => el.hover((st) => st.bg(shade(t.hover, "b3"))))
       .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
       .on_click(() => { run("space.select", { id: a.space }); run("pane.focus", { pane: a.pane }); })
       .child(div().w(10).text_size(12.5).text_color(a.status ? tint(a.status) : t.dim).child(mark(a.status)))
@@ -469,7 +445,7 @@ export default class TuiSide extends View {
         .child(h_flex().gap(6).text_size(12.5)
           .child(div().flex_shrink(1).min_w(0).truncate().font_bold().text_color(a.focused ? t.accent : t.foreground).child(a.space_name))
           .child(div().flex_none().text_color(t.dim).child(`· ${a.tab_name || a.tab_index}`)))
-        .child(div().truncate().text_size(12.5).text_color(t.muted).child(a.title || "—")));
+        .child(div().truncate().text_size(12.5).text_color(t.muted).child(desc(a))));
 
     const waiting = ags.filter((a) => a.status === "blocked").length;
     const part = props()?.part ?? "spaces";
@@ -486,18 +462,39 @@ export default class TuiSide extends View {
       .rounded(6).border_1().border_color(t.border)
       // the same base as the terminals: their surface paints ~78% over the
       // wallpaper (terminal_opacity 0.68, measured), so the cards match
-      .bg(t.background + "c7");
+      .bg(shade(t.background, "c7"));
     const chevron = (id, label, action) => div().id(id).px(6).rounded(4).text_size(12.5).text_color(t.dim)
       .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
-      .hover((st) => st.bg(t.hover + "b3").text_color(t.foreground)).on_click(action).child(label);
+      .hover((st) => st.bg(shade(t.hover, "b3")).text_color(t.foreground)).on_click(action).child(label);
+    // The window controls the system doesn't draw on Linux (close, minimize,
+    // maximize-toggle) and the app's settings, as lucide icons tinted with
+    // the text colour; closing tints red under the pointer. Assets come
+    // from Herdr's shipped workspace-chrome mod.
+    const winBtn = (id, icon, command, th) => div().id(id).px(5).py(4).rounded(4).text_color(th.dim)
+      .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+      .hover((st) => command === "window.close"
+        ? st.bg(shade(th.blocked, "b3")).text_color(th.blocked)
+        : st.bg(shade(th.hover, "b3")).text_color(th.foreground))
+      .on_click(() => run(command))
+      .child(svg(`mods/workspace-chrome/${icon}.svg`).size(13));
 
+    // The halves' names at the bottom of each card, in the agent
+    // description's lettering (12.5, muted); the agents one carries the
+    // needs-attention count when there is any.
+    const label = (text, waiting) => h_flex().flex_none().px(10).pb(4).pt(1).gap(6).items_baseline()
+      .child(div().text_size(12.5).text_color(t.muted).child(text))
+      .when(Boolean(waiting), (el) => el.child(div().text_size(12.5).text_color(t.blocked).child(`${waiting} need you`)));
     // Folded, as the old herdr's rail: each space by its number on its
     // machine (other machines open with ▾ and their position), then each
-    // agent by its space's first letter; a status mark after each; » last.
-    if (this.width < 60) {
+    // agent by its space's first letter; a status mark after each. All
+    // three panels stay in both states: the rail cards lose their labels
+    // and the bottom panel stacks its buttons, with » to unfold.
+    const folded = this.width < 60;
+    let root;
+    if (folded) {
       const cell = (id, label, st, on, action) => h_flex().id(id).w_full().h(19).px(4).gap(1).justify_center().items_center()
-        .rounded(3).text_size(12.5).bg(on ? t.selected + "b3" : t.background + "4d")
-        .when(!on, (el) => el.hover((s) => s.bg(t.hover + "b3"))).on_mouse_down("left", (_e, cx) => cx.stop_propagation()).on_click(action)
+        .rounded(3).text_size(12.5).bg(on ? shade(t.selected, "b3") : shade(t.background, "4d"))
+        .when(!on, (el) => el.hover((s) => s.bg(shade(t.hover, "b3")))).on_mouse_down("left", (_e, cx) => cx.stop_propagation()).on_click(action)
         .child(div().text_color(on ? t.accent : t.muted).when(on, (el) => el.font_bold()).child(label))
         .child(div().text_size(12.5).text_color(st ? tint(st) : t.dim).child(mark(st)));
       if (part === "spaces") {
@@ -507,54 +504,60 @@ export default class TuiSide extends View {
             .text_color(m.layout === "unavailable" ? t.blocked : t.accent).child(`▾${mi + 1}`)];
           return [...head, ...own.map((s, i) => cell(`cr-${s.id}`, String(i + 1), s.status, s.active, () => run("space.select", { id: s.id })))];
         });
-        return sized(v_flex().size_full())
+        root = sized(v_flex().size_full())
           .child(card(v_flex().px(3).pt(4))
             .child(v_flex().id("cr-spaces").flex_1().min_h(0).overflow_y_scroll().children(rail)));
+      } else {
+        root = sized(v_flex().size_full())
+          .child(card(v_flex().px(3).pt(6))
+            .child(v_flex().id("cr-agents").flex_1().min_h(0).overflow_y_scroll()
+              .children(ags.map((a) => cell(`cra-${a.address}`, [...(a.space_name || "?")][0] ?? "?", a.status, a.focused,
+                () => { run("space.select", { id: a.space }); run("pane.focus", { pane: a.pane }); })))));
       }
-      const unf = h_flex().flex_none().py(4).justify_center().child(chevron("cs-unfold", "»", () => this.unfold()));
-      return sized(v_flex().size_full())
-        .child(card(v_flex().px(3).pt(6))
-          .child(v_flex().id("cr-agents").flex_1().min_h(0).overflow_y_scroll()
-            .children(ags.map((a) => cell(`cra-${a.address}`, [...(a.space_name || "?")][0] ?? "?", a.status, a.focused,
-              () => { run("space.select", { id: a.space }); run("pane.focus", { pane: a.pane }); })))
-            .child(unf)));
-    }
-
-    if (part === "spaces") {
-      return sized(v_flex().size_full())
+    } else if (part === "spaces") {
+      root = sized(v_flex().size_full())
         .child(card(v_flex().flex_1().min_h(0))
           .child(v_flex().id("cs-spaces").flex_1().min_h(0).overflow_y_scroll()
             // A release outside any space cancels the drag.
             .on_mouse_up("left", (_e, cx) => { if (this.pressed !== null) { this.pressed = null; this.over = null; cx.notify(); } })
-            .children(machines().map(machine))));
+            .children(machines().map(machine)))
+          .child(label("Spaces")));
+    } else {
+      root = sized(v_flex().size_full())
+        .child(card(v_flex().flex_1().min_h(0))
+          .child(v_flex().id("cs-agents").flex_1().min_h(0).overflow_y_scroll()
+            // The agents half wears the same stacked sub-panels as the spaces
+            // half: one raised, 30%-transparent panel holding the rows, 3px
+            // from the card's edges on every side.
+            .child(v_flex().mx(3).mt(3).mb(3).rounded(6)
+              .when(ags.length === 0, (el) => el.child(div().px(10).py(6).text_size(12.5).text_color(t.dim)
+                .child("No agents here yet. Start one from the picker (ctrl-b w) or ctrl-b c.")))
+              .children(ags.map(agent))))
+          .child(label("Agents", waiting)));
     }
-    return sized(v_flex().size_full())
-      .child(card(v_flex().flex_1().min_h(0))
-        .child(v_flex().id("cs-agents").flex_1().min_h(0).overflow_y_scroll()
-          // The agents half wears the same stacked sub-panels as the spaces
-          // half: one raised, 30%-transparent panel holding the rows, 3px
-          // from the card's edges on every side.
-          .child(v_flex().mx(3).mt(3).mb(3).rounded(6)
-            .child(h_flex().px(10).py(5).gap(8).items_center().rounded_t(6)
-              .child(h_flex().flex_1().gap(10).items_center()
-                .child(div().text_size(12.5).font_bold().text_color(t.dim).child("AGENTS"))
-                .child(div().text_color(waiting ? t.blocked : t.dim).child(waiting ? `${waiting} need you` : `${ags.length}`)))
-              .child(div().id("ca-sort").px(6).rounded(4).text_size(12.5).text_color(t.muted).hover((st) => st.bg(t.hover + "b3").text_color(t.foreground))
-                .on_click((_e, cx) => this.setSort(this.sort === "priority" ? "spaces" : "priority", cx)).child(this.sort)))
-            .when(ags.length === 0, (el) => el.child(div().px(10).py(6).text_size(12.5).text_color(t.dim)
-              .child("No agents here yet. Start one from the picker (ctrl-b w) or ctrl-b c.")))
-            .children(ags.map(agent))))
-        // What the old top line showed: the usage numbers, then the shown
-        // space's machine and time, with « at the right to fold the sidebar.
-        .child(v_flex().flex_none().px(10).pt(2).pb(6).gap(3)
-          .when(Boolean(this.usage.length), (el) => el.child(this.usageLine(t)))
-          .child(h_flex().items_center().justify_between()
-            .child(div().min_w(0).truncate().text_size(12.5).text_color(t.dim)
-              .child((() => {
-                const shown = list.find((x) => x.active);
-                const where = shown?.machine != null ? this.hosts[shown.machine] ?? shown.machine : this.host;
-                return [where, clock()].filter(Boolean).join("  ·  ");
-              })()))
-            .child(chevron("cs-fold", "«", () => this.fold())))));
+    // The bottom panel in both states: the usage numbers, the window
+    // controls the system doesn't draw on Linux and the app's settings —
+    // spread across the width expanded, stacked in the rail, where the
+    // chevron turns » and unfolds.
+    const panel = v_flex().flex_none().mt(2).mx(3).mb(3).rounded(6).border_1().border_color(t.border).bg(shade(t.background, "c7"));
+    const btns = [
+      ["cs-win-close", "x", "window.close"],
+      ["cs-win-min", "minus", "window.minimize"],
+      ["cs-win-max", "square", "window.maximize"],
+      ["cs-settings", "settings", "app.settings"],
+    ];
+    if (folded) {
+      panel.px(2).py(4).gap(2).items_center();
+      panel.child(chevron("cs-unfold", "»", () => this.unfold()));
+      for (const [id, icon, cmd] of [...btns].reverse()) panel.child(winBtn(id, icon, cmd, t));
+    } else {
+      panel.px(10).py(5).gap(3);
+      panel.when(Boolean(this.usage.length), (el) => el.child(this.usageLine(t)));
+      panel.child(h_flex().items_center().justify_between()
+        .children([...btns.map(([id, icon, cmd]) => winBtn(id, icon, cmd, t)), chevron("cs-fold", "«", () => this.fold())]));
+    }
+    // The bottom panel lives in the agents copy only; the spaces copy is
+    // its card alone, in both states.
+    return part === "spaces" ? root : root.child(panel);
   }
 }

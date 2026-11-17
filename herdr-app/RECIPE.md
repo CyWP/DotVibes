@@ -64,40 +64,51 @@ Top to bottom:
      terminal's `cwd`, else its folder) every 15s: a space is a worktree when
      `--git-common-dir` isn't its `--show-toplevel`'s `.git`, and it nests
      under the space holding that repo's main checkout.
-2. **Tab bar, a 2px hairline over the panes**, in the border colour so it
-   meshes with the border lines around it, aligned with the cards' side
-   edges (6px in from the window edge, 3px below the window's top
-   edge). Divided once per tab of the shown space, no gaps and no text:
-   the shown tab's segment is solid orange, the rest `#514d43`, and a
-   hovered one lightens. Nothing shows when the space has no tabs. No `+`:
-   new tabs come from `ctrl-b c` or the picker.
+2. **Tab bar, a 1px hairline under the panes**, in the border colour (the
+   cards' edges) so it meshes with the border lines around it, aligned
+   with the cards' side edges (6px in from the window edge, 3px above
+   the window's bottom edge). Divided once per tab of the shown space, no
+   gaps and no text: the shown tab's segment carries a 4px pill with
+   rounded ends over the line, in the muted colour (the terminal
+   scrollbar thumb's colour and thickness); a hovered segment's line
+   lightens to the muted. Nothing shows when the space has no tabs. No
+   `+`: new tabs come from `ctrl-b c` or the picker.
 3. **Sidebar, bottom half: agents.** A draggable divider between the halves.
    - The same stacked sub-panel as the machines: one panel per half
      (transparent; the rows sit on the card's base, 3px from the card's
-     edges) holding the rows, with its header inside — `AGENTS` with
-     how many there are (or `2 need you` in red), and a `priority` /
-     `spaces` switch.
+     edges) holding the rows.
    - One row per agent: `●` / `○` / `·` in its status colour, the space name
      bold, `· <tab name or number>` dim; under it, what the agent's terminal
-     is titled (Claude's current task), muted. The agent you're in is on
+     is titled without the program's short name (`OC | …`), muted. The agent
+     you're in is on
      `#484439` with its name orange; one that needs you is tinted red.
-   - **A status line at the bottom:** the focused agent's model (`Opus 5.5`),
+   - Each card carries its name at the bottom, in the agent description's
+     lettering (12.5, muted) — `Spaces` on the top card, `Agents` on the
+     bottom one; when agents need you, `· 2 need you` in red follows it.
+   - **A status panel at the bottom:** its own small panel below the agents
+     card, the cards' skin (rounded 6, 1px border, the same translucent
+     base); the three panels sit 6px apart. Inside: the focused
+     agent's model (`Opus 5.5`),
      `ctx 11%`, `5h 12%`, `week 13%` (each number green, yellow from 50%, red
-     from 80%; hovering 5h or week shows when it resets), then the machine
-     the shown space runs on (this Mac's short hostname, or a remote
-     machine's own hostname) and the time, `my-mac  ·  3:10 PM`, with `«` at
-     the right to fold the sidebar.
-4. **Folded sidebar, 40px.** Spaces as their number on their machine with a
-   status mark (`1○ 2· 3●`), other machines opening with `▾2`, `▾3`; the
-   shown space highlighted; agents below a line as their space's first
-   letter with a mark; `»` at the bottom opens it again at its last width.
+     from 80%; hovering 5h or week shows when it resets); below them the
+     window controls the system doesn't draw on Linux and the app's
+     settings, as lucide icons (from Herdr's shipped workspace-chrome mod),
+     spread evenly across the panel's width: `×` closes (tinted red under
+     the pointer), `–` minimizes, `□` maximizes (toggles), `⚙` opens
+     Settings, `«` folds the sidebar.
+4. **Folded sidebar, 40px.** All three panels stay. Spaces as their number
+   on their machine with a status mark (`1○ 2· 3●`), other machines opening
+   with `▾2`, `▾3`; the shown space highlighted; agents below as their
+   space's first letter with a mark; the status panel stacks its buttons
+   inverted: `»` opens the sidebar again at its last width, then `⚙ □ – ×` —
+   so `»` sits where `«` sits expanded.
 5. **Panes:** cards with 6px corners and 6px gaps, no header line, terminal
    padding 6×10. The card paints no fill of its own — the background image
    sits directly under the terminal — and the terminal paints its `#242320`
    surface at ~78% over it (`terminal_opacity: 0.68` on the root,
    measured), so the wallpaper's washes show through. The tab bar
-   hairline sits 4px below the window's top and 5px above the cards; 3px
-   at the window's bottom.
+   hairline sits 4px above the window's bottom and 5px below the cards; 3px
+   at the window's sides.
 6. **Popups and dialogs** (right-click menus, rename, worktree, help)
    draw their own opaque `#2d2b27` box with 10px corners and a 1px
    border; the selected row is `#484439` and follows the pointer. The
@@ -107,9 +118,9 @@ Top to bottom:
 ## How it behaves
 
 - **Agent status** comes from the agents themselves (Claude Code reports it):
-  working is yellow, done green, needs you red, idle a ring. In `priority`
-  order, agents needing you come first, then done, working, idle; in
-  `spaces` order they follow the spaces list. `ctrl-b alt-1..9` jumps to the
+  working is yellow, done green, needs you red, idle a ring. Agents sort in
+  `priority` order: needing you first, then done, working, idle.
+  `ctrl-b alt-1..9` jumps to the
   agent in that row.
 - **The New worktree dialog** (`ctrl-b shift-g`, or the space menu) asks
   the git branch, the base branch and a startup script. Tab / shift-tab

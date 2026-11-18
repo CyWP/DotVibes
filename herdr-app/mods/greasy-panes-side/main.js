@@ -52,8 +52,6 @@ export default class TuiSide extends View {
     this.pressed = null;
     this.over = null;
     this.width = 280;
-    // Machines folded shut, by name ("" for this Mac); kept across restarts.
-    try { this.shut = new Set(JSON.parse(localStorage.getItem("shut") ?? "[]")); } catch { this.shut = new Set(); }
     // Agents in "priority" order: needing you first, then done, working, idle.
     // Each machine's connection as herdr-core reports it (connected,
     // unreachable, or on its way back), polled: machines() only knows
@@ -67,6 +65,9 @@ export default class TuiSide extends View {
     // What the old top line carried, drawn by the agents copy: the Claude
     // usage reports. The spaces copy skips that poll.
     this.usage = [];
+    // The agents panel folded to its title line (its toggle persists it).
+    try { this.agentsShut = localStorage.getItem("agentsShut") === "1"; } catch { this.agentsShut = false; }
+    this.restHeight = null;
     if ((props()?.part ?? "spaces") === "agents") this.statusTasks(cx);
     this.tasks(cx);
   }
@@ -270,9 +271,23 @@ export default class TuiSide extends View {
     openOverlay({ mod: "greasy-panes-menu", kind: "popup", frame: "none", width: 280, height: 260, props: { tab: "space", target: { id: s.id } } });
   }
 
-  toggle(key, cx) {
-    if (this.shut.has(key)) this.shut.delete(key); else this.shut.add(key);
-    try { localStorage.setItem("shut", JSON.stringify([...this.shut])); } catch {}
+
+
+  toggleAgents(cx) {
+    const wasShut = this.agentsShut;
+    if (!wasShut) this.foldedFrom = this.cardHeight;
+    this.agentsShut = !this.agentsShut;
+    try { localStorage.setItem("agentsShut", this.agentsShut ? "1" : "0"); } catch {}
+    // The agents block keeps its bottom edge pinned: folding shrinks it by
+    // exactly the card's title line (fixed 34px, no measurement), unfolding
+    // restores the pre-fold height \u2014 the spaces panels (the flexible
+    // block) absorb the difference, so the bottom panels never move.
+    if (!wasShut) {
+      this.restHeight = (this.height ?? 0) - this.foldedFrom;
+      run("layout.resize", { id: "side-agents", px: Math.max(120, (this.height ?? 0) - this.foldedFrom + 34) });
+    } else {
+      run("layout.resize", { id: "side-agents", px: Math.max(120, this.foldedFrom + (this.restHeight ?? 0)) });
+    }
     cx.notify();
   }
 
@@ -342,13 +357,10 @@ export default class TuiSide extends View {
         else if (from === i) run("space.select", { id: s.id });
         cx.notify();
       })
-      // One line: the name (status-coloured), then its folder when that
-      // isn't the name. The branch lives in its own panel below.
-      .child(h_flex().flex_1().min_w(0).gap(8).items_center().text_size(12.5)
-        .child(div().flex_shrink(0).max_w(150).truncate().text_color(s.status ? tint(s.status) : s.active ? t.foreground : t.muted).when(s.active, (el) => el.font_bold()).child(s.name))
-        .child(div().flex_1().min_w(0).truncate().text_color(t.dim)
-          .child((short(s.folder) || "~") !== s.name ? short(s.folder) : "")))
-      .when(Boolean(s.status) && s.status !== "idle", (el) => el.child(dot(s.status)))
+      // One line: the name (status-coloured). The branch lives in its own
+      // panel below.
+      .child(h_flex().flex_1().min_w(0).items_center().text_size(12.5)
+        .child(div().flex_shrink(0).max_w(150).truncate().text_color(s.status ? tint(s.status) : s.active ? t.foreground : t.muted).when(s.active, (el) => el.font_bold()).child(s.name)))
 
     };
 
@@ -391,6 +403,8 @@ export default class TuiSide extends View {
       return rows;
     };
 
+    const folded = this.width < 60;
+    const ms = machines();
     // One panel per machine, in machines() order: its spaces inside, its
     // name and link dot as the card's bottom label; the label toggles the
     // panel. Open panels share the block's height, folded ones slink.
@@ -400,24 +414,24 @@ export default class TuiSide extends View {
       const down = link === "unreachable";
       const back = !down && link !== "connected"; // on its way back: reconnecting
       const key = m.name ?? "";
-      const shut = this.shut.has(key);
-      // Shut, the label still shows the most urgent agent status inside it.
-      const worst = own.map((s) => s.status).filter(Boolean).sort((a, b) => (RANK[a] ?? 9) - (RANK[b] ?? 9))[0];
-      const el = shut ? v_flex().flex_none() : v_flex().flex_1().min_h(0);
-      const cardEl = el.text_color(t.foreground)
-        .mt(i === 0 ? 4 : 3).mb(i === ms.length - 1 ? 0 : 3).mx(3)
+      // One panel per machine: its spaces, and its lowercase name with the
+      // link dot as the bottom label. The panels share the block equally
+      // and always fill it \u2014 only the agents panel expands or minimizes.
+      const cardEl = v_flex().flex_1().min_h(0).text_color(t.foreground)
+        .mt(i === 0 ? 4 : 3).mb(3).mx(3)
         .rounded(6).border_1().border_color(t.border).bg(shade(t.background, "c7"));
-      if (!shut) cardEl.child(v_flex().flex_1().min_h(0).overflow_y_scroll()
+      cardEl.child(v_flex().flex_1().min_h(0).overflow_y_scroll()
         // A release outside any space cancels the drag.
         .on_mouse_up("left", (_e, cx) => { if (this.pressed !== null) { this.pressed = null; this.over = null; cx.notify(); } })
         .children(tree(own)));
       cardEl.child(h_flex().flex_none().px(10).pb(4).pt(1).gap(6).items_center()
-        .on_click((_e, cx) => this.toggle(key, cx))
-        .child(div().text_size(12.5).text_color(t.muted).child((m.name ?? "local").toLowerCase()))
-        .when(shut && Boolean(worst) && worst !== "idle", (el2) => el2.child(dot(worst)))
+        .child(div().text_size(12.5).text_color(t.muted).child(key ? key.toLowerCase() : "local"))
         .child(dot(down ? "blocked" : back ? "working" : "done", 4)));
       return cardEl;
     };
+
+    // The heights of every machine panel right now: dragged sizes, the
+    // title line for folded ones, equal shares of what's left otherwise.
 
     // As the old herdr's agents list: a ring or dot, the space · its tab, and
     // under it what the agent is doing. Every agent here is Claude Code, so
@@ -439,8 +453,17 @@ export default class TuiSide extends View {
     const waiting = ags.filter((a) => a.status === "blocked").length;
     const part = props()?.part ?? "spaces";
     const sized = (el) => el.id(`cs-root-${part}`).on_size_change((size, cx) => {
-      if (Math.abs(size.width - this.width) >= 1) { this.width = size.width; cx.notify(); }
+      let changed = false;
+      if (Math.abs(size.width - this.width) >= 1) { this.width = size.width; changed = true; }
+      if (Math.abs(size.height - (this.height ?? 0)) >= 1) {
+        this.height = size.height; changed = true;
+        // The agents copy publishes its block's height: the strip at the
+        // top of the agents block resizes through it.
+        if (part === "agents") setShared("side.agentsPx", size.height);
+      }
+      if (changed) cx.notify();
     });
+
     // The card is drawn by the mod, not the layout, so the margins can
     // differ per side: 4 at the top, 4 at the bottom, 3 at the sides; the
     // 5px between the cards comes from the column gap.
@@ -478,8 +501,6 @@ export default class TuiSide extends View {
     // agent by its space's first letter; a status mark after each. All
     // three panels stay in both states: the rail cards lose their labels
     // and the bottom panel stacks its buttons, with » to unfold.
-    const folded = this.width < 60;
-    const ms = machines();
     let root;
     if (folded) {
       const cell = (id, label, st, on, action) => h_flex().id(id).w_full().h(19).px(4).gap(1).justify_center().items_center()
@@ -504,16 +525,62 @@ export default class TuiSide extends View {
                 () => { run("space.select", { id: a.space }); run("pane.focus", { pane: a.pane }); })))));
       }
     } else if (part === "spaces") {
-      root = sized(v_flex().size_full())
-        .children(ms.map((m, i) => machine(m, i)));
+      // One panel per machine, in machines() order \u2014 equal shares that
+      // always fill the block. The boundary to the agents panel is the
+      // layout's own divider, given a strip of its own (it pulls into the
+      // gap between the blocks) and driven through the agents block's
+      // height, so only the agents panel expands or minimizes.
+      root = sized(v_flex().size_full()
+        .on_mouse_move((e, cx) => {
+          if (this.resizingBlock) {
+            // The agents block's height follows the pointer (the strip
+            // drags the layout's own divider); the spaces panels take the
+            // rest.
+            const agentsPx = shared("side.agentsPx") ?? 400;
+            const px2 = Math.min(Math.max(agentsPx - (e.position.y - this.resizingBlock.startY), 150), 2500);
+            if (px2 !== this.resizingBlock.last) {
+              this.resizingBlock.last = px2;
+              run("layout.resize", { id: "side-agents", px: px2 });
+            }
+          }
+        })
+        .on_mouse_up("left", (_e, cx) => {
+          if (this.resizingBlock) { this.resizingBlock = null; cx.notify(); }
+        })
+        .children(ms.map((m, i) => machine(m, i)))
+        // The boundary to the agents panel: the layout's own divider, given
+        // a strip of its own (it pulls into the gap between the blocks).
+        .child(div().id("rs-block").flex_none().h(6).w_full().mb(-6)
+          .on_mouse_down("left", (e, cx) => {
+            cx.stop_propagation();
+            this.resizingBlock = { startY: e.position.y, last: null };
+            cx.notify();
+          })
+          .when(this.resizingBlock, (el) => el.bg(shade(t.accent, "b3")))
+          .hover((st) => st.bg(shade(t.border, "b3")))));
     } else {
       root = sized(v_flex().size_full())
-        .child(card(v_flex().flex_1().min_h(0))
-          .child(v_flex().id("cs-agents").flex_1().min_h(0).overflow_y_scroll()
-            .when(ags.length === 0, (el) => el.child(div().px(10).py(6).text_size(12.5).text_color(t.dim)
+        .child((this.agentsShut ? v_flex().flex_none().h(34) : v_flex().flex_1().min_h(0))
+          .text_color(t.foreground).mt(0).mb(3).mx(3)
+          .on_size_change((size) => { this.cardHeight = size.height; })
+          .rounded(6).border_1().border_color(t.border).bg(shade(t.background, "c7"))
+          .when(!this.agentsShut, (el) => el.child(v_flex().id("cs-agents").flex_1().min_h(0).overflow_y_scroll()
+            .when(ags.length === 0, (el2) => el2.child(div().px(10).py(6).text_size(12.5).text_color(t.dim)
               .child("No agents here yet. Start one from the picker (ctrl-b w) or ctrl-b c.")))
-            .children(ags.map(agent)))
-          .child(label("agents", waiting)));
+            .children(ags.map(agent))))
+          .child(h_flex().flex_none().px(10).pb(4).pt(1).gap(6).items_center()
+            .when(this.agentsShut, (el) => el.h_full())
+            .on_click((_e, cx) => this.toggleAgents(cx))
+            .child(div().text_size(12.5).text_color(t.muted).child("agents"))
+            .when(waiting > 0, (el) => el.child(div().text_size(12.5).text_color(t.blocked).child(`${waiting} need you`)))
+            .child(div().flex_1())
+            .child(h_flex().px(5).py(3).rounded(4)
+              .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+              .hover((st) => st.bg(shade(t.hover, "b3")))
+              .on_click((_e, cx) => { cx.stop_propagation(); this.toggleAgents(cx); })
+              .child(svg(this.agentsShut
+                ? "mods/greasy-panes-side/chevron-up.svg"
+                : "mods/workspace-chrome/chevron-down.svg").size(14).text_color(t.dim)))));
     }
     // The shown space's git branch, in its own small panel between the
     // agents card and the bottom one (expanded only; the rail is too narrow).

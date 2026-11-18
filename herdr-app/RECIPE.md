@@ -45,19 +45,18 @@ Top to bottom:
 
 1. **Sidebar, top half: spaces.** One panel per machine, in machine order —
    each a rounded card with a 1px border painting the terminal surface at
-   ~78%, 6px apart (4px above the first, flush to the divider below the
-   last). Open panels share the block's height; a folded one slinks to
-   just its label.
+   ~78%. Equal shares that always fill the block (no folding, no per-panel
+   sizing). The boundary to the agents panel is the layout's own divider,
+   given a strip of its own: dragging it drives the agents block's height,
+   so only the agents panel expands or minimizes — the spaces panels just
+   keep filling the rest.
    - The card's bottom label is the machine's name, lowercase, in the discreet
      12.5/muted lettering with a 6px link dot — green connected, yellow with
-     `◐ reconnecting`, red unreachable; clicking the label folds the
-     machine to just that label, and a folded one shows the most urgent
-     agent status inside it as a second dot.
+     `◐ reconnecting`, red unreachable.
    - One line per space: its name in its status colour (muted when no
      agent runs there), bold and on a `#484439` background when shown, cut
-     at 150px — no status dots anywhere — followed by its folder, dim,
-     when the folder isn't the name. The shown space's git branch lives in
-     its own panel (below).
+     at 150px — no status dots anywhere. The shown space's git branch
+     lives in its own panel (below).
    - A worktree space sits under its repo's space on a drawn tree: a 1px
      trunk and a 10px twig in the border colour (fainter than the text),
      the trunk stopping halfway on the last one, then
@@ -85,7 +84,11 @@ Top to bottom:
      you're in is on
      `#484439` with its name orange; one that needs you is tinted red.
    - Each card carries its name at the bottom, in the agent description's
-     lettering (12.5, muted) — `agents` on the bottom card; when agents need you, `· 2 need you` in red follows it.
+     lettering (12.5, muted) — `agents` on the bottom card, with a toggle (the buttons' hover,
+     slightly larger arrows) that minimizes the panel to just that line
+     and back — the agents block hands the exact difference to the spaces
+     panels, so the bottom panels never move; when agents need you,
+     `· 2 need you` in red follows it.
    - **A branch panel** between the agents card and the status panel, the
      cards' skin: the shown space's git branch (muted) with the git-branch
      icon at the right; `detached` when the checkout has no branch, `no

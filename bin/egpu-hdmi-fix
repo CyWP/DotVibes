@@ -1,0 +1,222 @@
+#!/usr/bin/env bash
+# egpu-hdmi-fix.sh — detect and repair the eGPU (RTX 3090 / Core X) display path.
+#
+# What it does, in order:
+#   1. Reports Thunderbolt authorization state for the enclosure.
+#   2. Finds the NVIDIA eGPU on PCIe and checks the driver is bound.
+#   3. Checks the DRM/KMS device (card node + HDMI connector) is really alive.
+#   4. If broken, reloads the NVIDIA module stack; refuses politely if
+#      applications are holding the device open and tells you what to close.
+#   5. If a log out/in or reboot is needed, it only PRINTS the request — it
+#      never performs one itself.
+#
+# Sudo: diagnosis (and --status) never needs root. When a repair is actually
+# required, the script re-execs itself under sudo — that is the only point
+# where it asks for your password.
+#
+# Usage:
+#   egpu-hdmi-fix            # diagnose and repair
+#   egpu-hdmi-fix --status   # diagnose only, change nothing
+#
+set -u
+
+GPU_VENDOR=0x10de
+GPU_CLASS_PREFIX=0x03      # PCI base class "display controller"
+POLL_TRIES=6               # x 1s: how long to wait for devices to (re)appear
+
+say()  { printf '%s\n' "$*"; }
+ok()   { printf '  [ok]   %s\n' "$*"; }
+warn() { printf '  [warn] %s\n' "$*"; }
+fail() { printf '  [FAIL] %s\n' "$*" >&2; }
+die()  { fail "$*"; exit 1; }
+
+# Absolute path to this script even when run through the ~/.local/bin symlink
+# (the repo copy is what sudo re-executes).
+SELF="${BASH_SOURCE[0]}"
+while [ -L "$SELF" ]; do
+  DIR=$(cd -P "$(dirname "$SELF")" && pwd)
+  SELF=$(readlink "$SELF")
+  [[ $SELF != /* ]] && SELF="$DIR/$SELF"
+done
+
+status_only=0
+[ "${1:-}" = "--status" ] && status_only=1
+
+# Hand the whole run to root at a "this needs privileges" point. Diagnosis
+# above has already happened for the cheap part; root re-runs it anyway so
+# the report reflects the privileged view.
+reexec_as_root() {
+  [ "$(id -u)" = 0 ] && return 0
+  say
+  say "This step needs root — sudo will ask for your password..."
+  exec sudo -- "$SELF" "$@"
+}
+
+# ---------------------------------------------------------------- read-only
+# Locate the eGPU: NVIDIA device with a display class code.
+gpu_addr=""
+for d in /sys/bus/pci/devices/*; do
+    [ "$(cat "$d/vendor" 2>/dev/null)" = "$GPU_VENDOR" ] || continue
+    case "$(cat "$d/class" 2>/dev/null)" in
+        $GPU_CLASS_PREFIX*) gpu_addr="${d##*/}" ;;
+    esac
+done
+
+if [ -z "$gpu_addr" ]; then
+    # GPU absent: is the enclosure attached but unauthorized?
+    for t in /sys/bus/thunderbolt/devices/0-*; do
+        [ -f "$t/authorized" ] || continue
+        auth=$(cat "$t/authorized" 2>/dev/null)
+        name=$(cat "$t/device_name" 2>/dev/null)
+        if [ "$auth" = "0" ]; then
+            die "Thunderbolt device '$name' present but NOT authorized.
+           Approve it (GNOME Settings > Privacy > Thunderbolt, or run:
+             sudo bolt authorize \$(bolt list | awk '/$name/{print \$1}'))
+           then run this script again."
+        fi
+    done
+    die "No NVIDIA GPU found on PCIe. Is the eGPU plugged in and powered on?"
+fi
+ok "eGPU found at PCI $gpu_addr"
+
+devdir="/sys/bus/pci/devices/$gpu_addr"
+driver=$(readlink "$devdir/driver" 2>/dev/null | xargs -r basename)
+case "$driver" in
+    nvidia)     ok "nvidia driver bound" ;;
+    "")         warn "GPU present but no driver bound"
+                if [ "$status_only" = 1 ]; then
+                    fail "re-run without --status to load it"
+                    exit 1
+                fi
+                reexec_as_root
+                modprobe nvidia || die "could not load the nvidia driver"
+                ok "nvidia driver loaded" ;;
+    nouveau)    die "nouveau is bound — blacklist it and reboot (nouveau must not claim the card)" ;;
+    *)          die "unexpected driver '$driver' bound to the eGPU" ;;
+esac
+
+# --- DRM/KMS health: the driver can be bound while the card node is gone.
+find_card() { ls "$devdir/drm/" 2>/dev/null | grep -m1 '^card[0-9]'; }
+find_hdmis() {
+    local card="$1" c dir
+    dir="$devdir/drm/$card"
+    for c in "$dir/"card*"-"*; do
+        [ -e "$c/status" ] || continue
+        case "$(basename "$c")" in *-HDMI-*|*-DP-*) echo "$c" ;; esac
+    done
+}
+
+card=$(find_card)
+if [ -z "$card" ]; then
+    warn "driver bound but the DRM card node is MISSING (KMS device unregistered)"
+    need_reload=1
+else
+    ok "DRM node $card present"
+    # Give hotplug detection a moment, then look for a live display.
+    monitor=""
+    for _ in 1 2 3; do
+        for c in $(find_hdmis "$card"); do
+            st=$(cat "$c/status" 2>/dev/null)
+            if [ "$st" = "connected" ]; then monitor="$c"; break; fi
+        done
+        [ -n "$monitor" ] && break
+        sleep 1
+    done
+    if [ -n "$monitor" ]; then
+        name=$(basename "$monitor")
+        ok "display detected on $name"
+        have_display=1
+    else
+        warn "no connected HDMI/DP connector found on the eGPU"
+        have_display=0
+    fi
+fi
+
+if [ "${have_display:-0}" = 1 ] && [ "$status_only" = 1 ]; then
+    say "All good — nothing to fix. (If the screen is still black, log out and
+  back in so the desktop session re-scans the GPU.)"
+    exit 0
+fi
+
+# ------------------------------------------------------------------- repair
+if [ "$status_only" = 1 ]; then
+    say "Run without --status to attempt the repair."
+    exit 1
+fi
+
+if [ "${need_reload:-0}" = 1 ]; then
+    # Who is holding the device open? A module reload is impossible while
+    # anything keeps /dev/nvidia* busy. This check needs no root, but the
+    # reload itself does — ask for the password only once, here.
+    holders=$(fuser /dev/nvidia0 /dev/nvidiactl /dev/nvidia-modeset 2>/dev/null | tr ' ' '\n' | sort -u)
+    if [ -n "$holders" ]; then
+        say
+        warn "the NVIDIA device is in use by these processes:"
+        for p in $holders; do
+            [ -d "/proc/$p" ] || continue
+            printf '           pid %-8s %s\n' "$p" "$(ps -o comm= -p "$p" 2>/dev/null)"
+        done
+        say
+        say "  Close those applications (e.g. Firefox — its GPU/RDD process counts
+  — or any app using the 3090), then re-run this script.
+  If the holders are session/compositor components you cannot close,
+  you need to log out first:"
+        say
+        say "    >>> ACTION NEEDED: log out and back in, then re-run this script."
+        say "    (run manually: gnome-session-quit --logout)"
+        exit 1
+    fi
+
+    reexec_as_root
+
+    say "Reloading NVIDIA module stack..."
+    modprobe -r nvidia 2>&1 | grep -v '^$' && true
+    modprobe nvidia-drm || die "failed to load nvidia-drm (check: sudo dmesg | grep -i nvrm)"
+    ok "modules reloaded"
+
+    # Wait for the card node to come back.
+    card=""
+    for _ in $(seq "$POLL_TRIES"); do
+        card=$(find_card)
+        [ -n "$card" ] && break
+        sleep 1
+    done
+    [ -n "$card" ] || die "DRM card node did not reappear after reload.
+  Full power cycle of the eGPU enclosure (unplug its power + TB cable,
+  wait 10 s, replug), then re-run this script."
+    ok "DRM node $card is back"
+fi
+
+# Final check for a connected display.
+monitor=""
+for _ in $(seq "$POLL_TRIES"); do
+    for c in $(find_hdmis "$card"); do
+        [ "$(cat "$c/status" 2>/dev/null)" = "connected" ] && monitor="$c" && break
+    done
+    [ -n "$monitor" ] && break
+    sleep 1
+done
+
+if [ -n "$monitor" ]; then
+    say
+    ok "display is connected on $(basename "$monitor") at kernel level."
+    if [ "${have_display:-0}" != 1 ]; then
+        say "  If the screen is still black, the running Wayland session was started
+  before the GPU was healthy and needs to re-scan it:"
+        say
+        say "    >>> ACTION NEEDED: log out and back in (no reboot needed)."
+        say "    (run manually: gnome-session-quit --logout)"
+        say
+        say "  Then enable the display in Settings > Displays if it is off."
+    fi
+else
+    say
+    fail "eGPU is healthy but no monitor reports connected."
+    say "  Things to try, in order:"
+    say "   1. Reseat the HDMI cable at both ends (or try another port on the Core X)."
+    say "   2. Unplug/replug the TB cable."
+    say "   3. Power cycle the enclosure (power + TB cable off 10 s), then re-run:"
+    say "        egpu-hdmi-fix --status"
+    say "   4. If the node vanished again, reboot:"
+    say "    >>> ACTION NEEDED: reboot manually (this script will not do it)."
+fi

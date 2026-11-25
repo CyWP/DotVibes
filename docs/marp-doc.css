@@ -1,0 +1,233 @@
+/* @theme dotvibes-doc */
+/* DotVibes Marp DOCUMENT theme: paged documents meant to be read page by page
+   (reports, essays, memos), built with `marp-doc-build` (a thin wrapper around
+   `marp-build -f doc`). Same design language as the slides theme `dotvibes`
+   (slides/marp.css) — ABC Areal headings, hairlines, monochrome type — but for
+   reading: US Letter portrait (A4 via `size: A4` / --paper a4), EB Garamond
+   body text, generous margins, no per-page colour and no colour anywhere: the
+   logo (--logo), if given, sits greyscale and bottom-centre on the title page.
+   Classes (via `<!-- _class: x -->`): lead + cover (title page, added by
+   marp-build), toc (contents page, added by marp-build --toc), small (denser
+   text). Layout: <div class="cols"><div>…</div><div>…</div></div> gives two
+   plain columns. Light only — documents have no dark variant. */
+
+@import 'default';
+
+/* page sizes: US Letter is the default (section width/height); A4 selectable
+   with front matter `size: A4` or `marp-doc-build --paper a4` */
+/* @size Letter 8.5in 11in */
+/* @size A4 210mm 297mm */
+
+:root {
+  --ivory: #fbf9f4;    /* warm off-white (kept for parity with the slides theme) */
+  --bg: #ffffff;
+  --fg: #111111;       /* headings, lines */
+  --body: #1e1e1e;     /* running text: just under the headings' black */
+  --muted: #595959;    /* labels, footer, quotes: >= 7:1 on white for weak screens/print */
+  --rule: #111111;     /* hairlines */
+  --ghost: #a6a6a6;    /* very light: footer, title-page byline (deliberately quiet) */
+  --faint: #cfc8b8;    /* secondary lines, code border (warm grey) */
+  --code-bg: #f5f0e6;  /* highlighted material (code): warm cream on white */
+  --pad-y: 88px;
+  --pad-x: 118px;      /* ~80 characters of Garamond across on Letter */
+  /* explicit fallbacks so a missing Areal never lands on a serif, and a missing
+     EB Garamond never lands on a sans */
+  --sans: 'ABC Areal', 'Helvetica Neue', Helvetica, Arial, 'Segoe UI', 'Liberation Sans', 'Noto Sans', 'DejaVu Sans', system-ui, sans-serif;
+  --serif: 'EB Garamond', Garamond, 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, 'Liberation Serif', 'DejaVu Serif', serif;
+  --mono: 'Monaspace Argon NF', 'Monaspace Argon', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, Consolas, monospace;
+}
+
+section {
+  width: 8.5in;        /* default page: US Letter portrait (see @size above) */
+  height: 11in;
+  background: var(--bg);
+  color: var(--body);
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: var(--fs);
+  line-height: 1.55;
+  --fs: 17px;          /* fixed base: headings, footer, page number size off this,
+                          NOT off the (class-dependent) body font-size, so `small`
+                          shrinks only the content */
+  padding: var(--pad-y) var(--pad-x);
+  align-content: start;
+  text-align: left;
+}
+
+/* --- headings: Areal, regular/medium weight; contrast from size + colour.
+   The document never rescales headings: h1 is the title page, h2 opens a
+   section, h3 is a sub-heading inside the running text. */
+h1, h2, h3 { color: var(--fg); font-family: var(--sans); font-weight: 400; }
+h1 { font-size: calc(var(--fs) * 2.5); font-weight: 500; letter-spacing: -0.015em; line-height: 1.15; margin: 0 0 0.6em; }
+h2 { font-size: calc(var(--fs) * 1.55); font-weight: 500; font-style: italic; letter-spacing: -0.01em; line-height: 1.2; margin: 1.2em 0 0.55em; }
+h2:first-child, h1 + h2 { margin-top: 0; }
+h3 { font-size: 1.12em; font-weight: 500; font-style: normal; color: var(--fg); margin: 1.1em 0 0.3em; }
+
+strong { color: var(--fg); font-weight: 700; }
+a { color: var(--fg); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.16em; }
+
+/* --- running text: Garamond paragraphs, block spacing (no indents) ---------- */
+p { margin: 0 0 0.6em; }
+p:last-child { margin-bottom: 0; }
+
+/* --- lists: hollow circles (same as the slides theme) ---------------------- */
+ul, ol { padding-left: 1.3em; margin: 0 0 0.6em; }
+li { margin: 0.22em 0; }
+ul > li { list-style: none; position: relative; }
+ul > li::before {
+  content: '';
+  position: absolute;
+  left: -1em;
+  top: 0.62em;
+  width: 0.2em;
+  height: 0.2em;
+  box-sizing: border-box;
+  border: 1px solid var(--fg);
+  border-radius: 50%;
+}
+li::marker { color: var(--muted); }
+li > p { margin: 0; }
+
+/* --- code ------------------------------------------------------------------ */
+code {
+  background: var(--code-bg);
+  border: 1px solid var(--faint);
+  border-radius: 3px;
+  padding: 0 0.3em;
+  font-family: var(--mono);
+  font-size: 0.78em;
+}
+pre { background: var(--code-bg); border: 1px solid var(--faint); border-radius: 0; padding: 0.6em 0.9em; line-height: 1.45; }
+pre code { background: none; border: 0; padding: 0; font-size: 0.72em; }
+/* monochrome syntax highlighting: no hljs colours */
+section pre code [class*='hljs'] { color: var(--body) !important; }
+section pre code .hljs-comment { color: var(--muted) !important; }
+section pre code .hljs-keyword, section pre code .hljs-built_in { color: var(--fg) !important; font-weight: 700; }
+
+/* --- tables: open, hairlines only (top / header / bottom) ------------------ */
+/* `section table …` selectors: needed to beat the default theme's specificity */
+section table { border-collapse: collapse; font-size: 0.85em; border: 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); margin: 0.6em 0; }
+section table tr, section table tr:nth-child(2n) { background: none; border: 0; }
+section table th {
+  background: none;
+  color: var(--fg);
+  font-weight: 500;
+  font-family: var(--sans);
+  font-size: 0.92em;
+  text-align: left;
+  padding: 0.35em 1em 0.35em 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+}
+section table td { background: none; border: 0; border-bottom: 1px solid var(--faint); padding: 0.3em 1em 0.3em 0; }
+section table tr:last-child td { border-bottom: 0; }
+
+blockquote {
+  border-left: 1px solid var(--rule);
+  color: var(--muted);
+  margin: 0.8em 0;
+  padding-left: 1em;
+}
+
+img { background: transparent; }
+/* `![center h:430](x.png)`: centre an image on its own line */
+img[alt~='center'] { display: block; margin: 0 auto; }
+
+/* --- footer / page number: quiet, book-like. Footer (author · date · doc
+   title) bottom-left, page number bottom-right, both in the ghost grey.
+   No colour, no cubes on content pages. */
+footer {
+  position: absolute;
+  left: var(--pad-x);
+  right: var(--pad-x);
+  bottom: 40px;
+  color: var(--ghost);
+  font-family: var(--sans);
+  font-size: calc(var(--fs) * 0.62);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+/* footer = author + date + doc title; the span only adds the gap:
+   footer: 'Author <span class="ft-title">Doc title</span>' */
+footer .ft-title { color: inherit; font-weight: inherit; margin-left: 1.4em; }
+footer .ft-title.ft-only { margin-left: 0; }   /* no author before it */
+section::after {
+  position: absolute;
+  left: auto;
+  right: var(--pad-x);
+  bottom: 40px;
+  top: auto;
+  width: auto;
+  height: auto;
+  padding: 0;
+  display: block;
+  color: var(--ghost);
+  font-family: var(--sans);
+  font-size: calc(var(--fs) * 0.62);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+/* --- logo / watermark ---------------------------------------------------------
+   The build puts the logo in the header directive:
+     header: '<img class="logo tr" src="../logo.png">'
+   Corner class on the img: tl | tr | bl | br; add `wm` for a faded watermark.
+   Top logos sit in the margin band above the text, flush with the content
+   margin; bottom logos sit above the footer. The header is an overlay: don't
+   use it for text. */
+section { --logo-h: 32px; --logo-w: 150px; }
+section header { position: absolute; inset: 0; height: auto; padding: 0; pointer-events: none; }
+section header img.logo {
+  position: absolute;
+  height: var(--logo-h); width: auto; max-width: var(--logo-w);
+  object-fit: contain; background: none;
+}
+section header img.logo.tr { top: calc(var(--pad-y) - var(--logo-h) - 18px); right: var(--pad-x); }
+section header img.logo.tl { top: calc(var(--pad-y) - var(--logo-h) - 18px); left: var(--pad-x); }
+section header img.logo.br { bottom: 92px; right: var(--pad-x); }
+section header img.logo.bl { bottom: 92px; left: var(--pad-x); }
+section header img.logo.wm { opacity: 0.35; }
+/* logos are monochrome: greyscale (this is a light-only theme). Documents use
+   the logo as a cover watermark ONLY — hidden on content pages. */
+section header img.logo { filter: grayscale(1); }
+section header img.logo { display: none; }
+section.lead.cover header img.logo {
+  display: block;
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: 40px;
+  transform: translateX(-50%);
+}
+
+/* --- title page: `<!-- _class: lead cover -->` is all a document needs -------
+   (marp-build adds it, with `_footer: ''` and the byline). Centred like the
+   slides cover; strictly monochrome — the optional logo is the only mark, and
+   it sits bottom-centre. No footer, no page number. */
+section.lead { align-content: center; text-align: center; }
+section.lead h1 { font-size: calc(var(--fs) * 2.9); font-style: normal; line-height: 1.15; }
+/* everything below the title speaks in ONE quiet voice: same size, colour,
+   spacing — the cover carries exactly two typographic weights */
+section.lead h2 { font-size: calc(var(--fs) * 0.8); font-weight: 400; font-style: normal; color: var(--muted); letter-spacing: 0.02em; margin: 1.4em 0 0; }
+section.lead .byline { margin: 1.4em 0 0; font-size: calc(var(--fs) * 0.8); font-family: var(--sans); font-weight: 400; letter-spacing: 0.02em; color: var(--muted); }
+/* the logo, if given, sits bottom-centre on the cover — no colour detail */
+section.lead.cover::after { display: none; }   /* no page number on the title page */
+section.lead.cover footer { display: none; }
+
+/* --- contents page (added by `marp-doc-build --toc`) -------------------------
+   `<!-- _class: toc -->`; rows are generated as
+   <div class="toc-row"><span class="toc-t">Section</span><span class="toc-n">N</span></div>
+   with a dotted leader between. The page number is the printed page number
+   (title page = 1). */
+section.toc h2 { margin-bottom: 0.9em; }
+section.toc .toc { margin-top: 0.4em; }
+.toc-row { display: flex; align-items: baseline; margin: 0.42em 0; }
+.toc-row .toc-t { flex: none; max-width: 82%; }
+.toc-row .toc-dots { flex: 1; border-bottom: 1px dotted var(--faint); margin: 0 0.5em; position: relative; top: -0.28em; min-width: 1.5em; }
+.toc-row .toc-n { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* --- denser pages (body only: headings/footer/page number keep --fs) ------- */
+section.small { font-size: 14.5px; }
+
+/* --- two columns (no divider) ---------------------------------------------- */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2.8em; }

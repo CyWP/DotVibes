@@ -53,14 +53,16 @@ Top to bottom:
    - The card's bottom label is the machine's name, lowercase, in the discreet
      12.5/muted lettering with a 6px link dot — green connected, yellow with
      `◐ reconnecting`, red unreachable.
-   - One line per space: its name in its status colour (muted when no
-     agent runs there), bold and on a `#484439` background when shown, cut
-     at 150px — no status dots anywhere. The shown space's git branch
-     lives in its own panel (below).
+   - One line per space: its number at the start, in the discreet dim
+     lettering — its place in the sidebar's order counting from 0, and the
+     `alt-0..9` key that jumps to it — then its name in its status colour
+     (muted when no agent runs there), bold and on a `#484439` background
+     when shown, cut at 150px — no status dots anywhere. The shown space's
+     git branch lives in its own panel (below).
    - A worktree space sits under its repo's space on a drawn tree: a 1px
      trunk and a 10px twig in the border colour (fainter than the text),
      the trunk stopping halfway on the last one, then
-     its branch, its name in its status colour like every row.
+     its branch, its number and its name in its status colour like every row.
    - Which repo: git, asked in each space's live folder (its first
      terminal's `cwd`, else its folder) every 15s: a space is a worktree when
      `--git-common-dir` isn't its `--show-toplevel`'s `.git`, and it nests
@@ -106,8 +108,9 @@ Top to bottom:
      the pointer), `–` minimizes, `□` maximizes (toggles), `⚙` opens
      Settings, `?` opens the keybinds panel, `🔍` the command palette,
      `«` folds the sidebar.
-4. **Folded sidebar, 40px.** All three panels stay. Spaces as their number
-   on their machine with a status mark (`1○ 2· 3●`), other machines opening
+4. **Folded sidebar, 40px.** All three panels stay. Spaces as their number —
+   the same one the expanded sidebar shows, the `alt-0..9` key that jumps
+   there — with a status mark (`1○ 2· 3●`), other machines opening
    with `▾2`, `▾3`; the shown space highlighted; agents below as their
    space's first letter with a mark; the status panel stacks its buttons
    inverted: `»` opens the sidebar again at its last width, then `⚙ □ – ×` —
@@ -161,7 +164,13 @@ Top to bottom:
   rows and the status line still drag it.
 - **Keys** (`keys.json`, only while this layout shows; prefix `ctrl-b`):
   `c` new tab, `n` / `p` next / previous, `shift-x` close tab,
-  `shift-t` rename tab; `shift-1..9` space N, `up` / `down` previous /
+  `shift-t` rename tab; `shift-1..9` space N, `alt-0..9` the space
+  carrying that number (the sidebar's order counting from 0 — each top
+  space, its worktrees, the next space, machine by machine; the numbers
+  drawn at the rows' starts; digits accumulate while alt is held, so
+  numbers past 9 work: alt-1 then alt-2 is space 12 — the jump fires when
+  the digit run ends, at once when no longer number could follow, on any
+  other key, else a beat after the last digit), `up` / `down` previous /
   next space and `alt-j` / `alt-k` the same without the prefix — both walk
   the sidebar's order (worktrees right after their repo), wrapping at the
   ends — and `alt-h` / `alt-l` previous / next tab. `left` / `right` back
@@ -211,7 +220,7 @@ Top to bottom:
   `layout.resize` (fold to 40, unfold to the width it had, kept in
   `localStorage`), `openOverlay`; polls `hc machine ls --json` for connection
   states, and its git probe is shared as `side.git` for the picker's
-  worktree nesting; listens on `nextCommand()` for `agent-N`, `recent-back`,
+  worktree nesting; listens on `nextCommand()` for `agent-N`, `space-N`, `recent-back`,
    `recent-forward`, `space-next`, `space-prev`, `split-left`, `split-up`, `fold-toggle`, `rename-space`, `new-worktree` (spaces copy; the
    recents pair walk a back/forward list of spaces the mod tracks in
    `render()`, and the space pair walk `displayOrder` — each top space

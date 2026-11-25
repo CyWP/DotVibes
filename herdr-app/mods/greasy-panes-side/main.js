@@ -1,7 +1,8 @@
 // Spike: the old herdr's sidebar, drawn as two copies (props.part "spaces"
 // or "agents") so the layout's divider between them can be dragged. Spaces
-// grouped by machine, each with its branch, and the shown one with its tabs
-// on a strip under it; agents needing you first. The agents copy also draws
+// grouped by machine, each with its number (the alt-key that jumps to it)
+// and its branch, and the shown one with its tabs on a strip under it;
+// agents needing you first. The agents copy also draws
 // what the old herdr's top line showed: the focused agent's model and
 // context, the account's 5-hour and weekly use, the machine and the time.
 import { View, div, svg } from "gpui-kit";
@@ -52,6 +53,13 @@ export default class TuiSide extends View {
     this.pressed = null;
     this.over = null;
     this.width = 280;
+    // The pending alt-0..9 digit run: digits accumulate so numbers past 9
+    // work (hold alt, type 1 then 2). The run ends itself — see the command
+    // loop — and a new digit or a flush invalidates its pending end-of-run
+    // timer through the generation.
+    this.digits = "";
+    this.digitsGen = 0;
+    this.digitAt = 0;
     // Agents in "priority" order: needing you first, then done, working, idle.
     // Each machine's connection as herdr-core reports it (connected,
     // unreachable, or on its way back), polled: machines() only knows
@@ -138,6 +146,36 @@ export default class TuiSide extends View {
         if (n && (props()?.part ?? "spaces") === "agents") {
           const a = this.order[n - 1];
           if (a) { run("space.select", { id: a.space }); run("pane.focus", { pane: a.pane }); }
+        }
+        // alt-0..9: the space carrying that number — its place in the
+        // sidebar's display order (counting from 0), the number drawn at
+        // the row's start. Digits accumulate, so numbers past 9 work: hold
+        // alt and type 1 then 2 for space 12. Keys fire on press and
+        // nothing can report alt's release, so a run ends by itself: a
+        // digit that cannot start a longer number jumps at once, any other
+        // key flushes the run, and a run that could still grow jumps a
+        // beat after the last digit — the only wait is a lone 1 (and a
+        // leading 0 fires at once, since 0-then-a-digit lands on that
+        // digit's space either way).
+        const d = /^space-(\d)$/.exec(c)?.[1];
+        if (d !== undefined && (props()?.part ?? "spaces") === "spaces") {
+          const at = Date.now();
+          if (d === this.digits.slice(-1) && at - this.digitAt < 150) {
+            this.digitAt = at; // the key held down and repeating, not a press
+          } else {
+            this.digitAt = at;
+            this.digits += d;
+            const n = Number(this.digits);
+            const last = (this.displayOrder ?? []).length - 1;
+            if (n === 0 || n * 10 > last) this.jumpDigits();
+            else {
+              const gen = ++this.digitsGen;
+              cx.timer.after(400, () => { if (gen === this.digitsGen) this.jumpDigits(); });
+            }
+          }
+        } else if (this.digits) {
+          // Any other key ends a digit run: jump to it first.
+          this.jumpDigits();
         }
         if (c === "rename-space" && (props()?.part ?? "spaces") === "spaces") {
           const sp = spaces().find((x) => x.active);
@@ -271,6 +309,18 @@ export default class TuiSide extends View {
     openOverlay({ mod: "greasy-panes-menu", kind: "popup", frame: "none", width: 280, height: 260, props: { tab: "space", target: { id: s.id } } });
   }
 
+  // An alt-0..9 digit run ended: jump to the space carrying the number, if
+  // there is one (0-based, the sidebar's display order). Clears the run and
+  // invalidates any pending end-of-run timer.
+  jumpDigits() {
+    const digits = this.digits;
+    if (!digits) return;
+    this.digits = "";
+    this.digitsGen++;
+    const id = (this.displayOrder ?? [])[Number(digits)];
+    if (id !== undefined && spaces().some((x) => x.id === id)) run("space.select", { id });
+  }
+
 
 
   toggleAgents(cx) {
@@ -320,11 +370,32 @@ export default class TuiSide extends View {
       this.moving = false;
       this.shownSpace = shown;
     }
-    // The display order for space-next / space-prev: each top space followed
-    // by its worktrees, per machine — the order the sidebar draws, not the
-    // raw spaces() order (worktrees created later would otherwise be
-    // walked last).
-    this.displayOrder = [];
+    // Worktrees: a space is a worktree when git says its repo's .git isn't
+    // in its own checkout, and it goes under the space (same machine) whose
+    // checkout is that repo's main one — the repo's main checkout first,
+    // any other space in the same repo after.
+    const linked = (s) => { const g = this.git[s.id]; return Boolean(g) && g.common !== `${g.top}/.git`; };
+    const common = (s) => this.git[s.id]?.common;
+    const parent = (w, tops) => tops.find((p) => common(p) === common(w) && this.git[p.id].top + "/.git" === common(w))
+      ?? tops.find((p) => common(p) === common(w));
+    // The display order for the space keys and space-next / space-prev:
+    // each top space followed by its worktrees, per machine — the order the
+    // sidebar draws, not the raw spaces() order (worktrees created later
+    // would otherwise be walked or numbered last). Every space's number is
+    // its place in it, counting from 0, drawn at the row's start: the
+    // alt-key that jumps there.
+    this.displayOrder = machines().flatMap((m) => {
+      const own = list.filter((s) => (s.machine ?? null) === m.name);
+      const tops = own.filter((s) => !linked(s));
+      const ids = [];
+      for (const s of own) {
+        if (linked(s) && parent(s, tops)) continue; // drawn under its repo
+        ids.push(s.id);
+        if (!linked(s)) for (const w of own.filter((x) => linked(x) && parent(x, tops) === s)) ids.push(w.id);
+      }
+      return ids;
+    });
+    const num = (s) => this.displayOrder.indexOf(s.id);
     const ags = [...agents()].sort((a, b) => (RANK[a.status] ?? 9) - (RANK[b.status] ?? 9) || b.seq - a.seq);
     this.order = ags;
     setAgentOrder(ags.map((a) => a.address));
@@ -333,7 +404,7 @@ export default class TuiSide extends View {
 
     // One row per space: a lifted background marks the shown one. A repo with
     // worktrees under it gets ▾ / ▸ at the right end to fold them.
-    const space = (s) => {
+    const space = (s, n) => {
       const i = list.indexOf(s);
       return h_flex().id(`cs-${s.id}`).relative().px(10).py(4).gap(8).rounded(4).items_center()
       .when(s.active, (el) => el.bg(shade(t.selected, "b3")))
@@ -357,6 +428,9 @@ export default class TuiSide extends View {
         else if (from === i) run("space.select", { id: s.id });
         cx.notify();
       })
+      // The space's number at the start, dim and discreet: its place in the
+      // sidebar's order, and the alt-key that jumps to it.
+      .child(div().flex_shrink(0).text_size(12.5).text_color(t.dim).child(String(n)))
       // One line: the name (status-coloured). The branch lives in its own
       // panel below.
       .child(h_flex().flex_1().min_w(0).items_center().text_size(12.5)
@@ -365,15 +439,12 @@ export default class TuiSide extends View {
     };
 
     // Worktrees, as the old herdr drew them: under their repo's space, one
-    // line each on a ├─ / └─ tree. Git decides (see probe): a space is a
-    // worktree when its repo's .git isn't in its own checkout, and it goes
-    // under the space (same machine) whose checkout is that repo's main one.
-    const linked = (s) => { const g = this.git[s.id]; return Boolean(g) && g.common !== `${g.top}/.git`; };
-    // The tree is drawn, not typed: ├─ glyphs leave gaps between rows that
+    // line each on a ├─ / └─ tree. The tree is drawn, not typed: ├─ glyphs
+    // leave gaps between rows that
     // aren't a terminal's exact cell height. A trunk runs down the left (to
     // the middle on the last row, so it ends in └) and a twig goes right.
     // The trunk reaches 2px up into the row above to bridge the list's gap.
-    const branchRow = (s, last) => h_flex().id(`cs-${s.id}`).relative().h(20).pl(30).pr(10).gap(6).rounded(4).items_center().text_size(12.5)
+    const branchRow = (s, last, n) => h_flex().id(`cs-${s.id}`).relative().h(20).pl(30).pr(10).gap(6).rounded(4).items_center().text_size(12.5)
       .when(s.active, (el) => el.bg(shade(t.selected, "b3")))
       .when(!s.active, (el) => el.hover((st) => st.bg(shade(t.border, "b3"))))
       .on_click(() => run("space.select", { id: s.id }))
@@ -384,21 +455,18 @@ export default class TuiSide extends View {
       // next sibling keep the trunk running through below the curve.
       .child(div().absolute().left(14).top(last ? -2 : 4).w(10).h(last ? 12 : 6).border_l(1).border_b(1).rounded_bl(6).border_color(t.border))
       .when(!last, (el) => el.child(div().absolute().left(14).top(-2).w(1).h(22).bg(t.border)))
+      // Its number, like every space row's.
+      .child(div().flex_shrink(0).text_color(t.dim).child(String(n)))
       .child(div().flex_1().min_w(0).truncate().text_color(s.status ? tint(s.status) : s.active ? t.foreground : t.muted).when(s.active, (el) => el.font_bold())
         .child(s.branch ?? s.name));
     const tree = (own) => {
       const tops = own.filter((s) => !linked(s));
-      const common = (s) => this.git[s.id]?.common;
-      // The repo's main checkout first; any other space in the same repo after.
-      const parent = (w) => tops.find((p) => common(p) === common(w) && this.git[p.id].top + "/.git" === common(w))
-        ?? tops.find((p) => common(p) === common(w));
       const rows = [];
       for (const s of own) {
-        if (linked(s) && parent(s)) continue; // drawn under its repo
-        const kids = linked(s) ? [] : own.filter((w) => linked(w) && parent(w) === s);
-        rows.push(space(s));
-        this.displayOrder.push(s.id);
-        kids.forEach((w, i) => { rows.push(branchRow(w, i === kids.length - 1)); this.displayOrder.push(w.id); });
+        if (linked(s) && parent(s, tops)) continue; // drawn under its repo
+        const kids = linked(s) ? [] : own.filter((w) => linked(w) && parent(w, tops) === s);
+        rows.push(space(s, num(s)));
+        kids.forEach((w, i) => rows.push(branchRow(w, i === kids.length - 1, num(w))));
       }
       return rows;
     };
@@ -512,7 +580,7 @@ export default class TuiSide extends View {
           const own = list.filter((s) => (s.machine ?? null) === m.name);
           const head = mi === 0 ? [] : [h_flex().w_full().h(19).justify_center().items_center().text_size(12.5)
             .text_color(m.layout === "unavailable" ? t.blocked : t.accent).child(`▾${mi + 1}`)];
-          return [...head, ...own.map((s, i) => cell(`cr-${s.id}`, String(i + 1), s.status, s.active, () => run("space.select", { id: s.id })))];
+          return [...head, ...own.map((s) => cell(`cr-${s.id}`, String(num(s)), s.status, s.active, () => run("space.select", { id: s.id })))];
         });
         root = sized(v_flex().size_full())
           .child(card(v_flex().px(3).pt(4))

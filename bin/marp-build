@@ -1,21 +1,33 @@
 #!/usr/bin/env bash
 # marp-build — render a Marp markdown file to PDF (default) or HTML.
+# Two formats:
+#   slides (default) — a deck: theme "dotvibes", 16:9, light or dark
+#   doc              — a paged document read page by page (reports, essays):
+#                      theme "dotvibes-doc" (US Letter portrait, A4 via --paper,
+#                      light only — usually driven via the marp-doc-build wrapper)
 #
-#   marp-build <file.md> [output] [-t pdf|html] [-T light|dark] [--bundle]
+#   marp-build <file.md> [output] [-t pdf|html] [-T light|dark] [-f slides|doc]
+#              [-p letter|a4] [--toc] [--bundle]
 #              [--logo FILE] [--logo-corner tr|tl|bl|br[,wm]] [--background FILE]
 #              [--author NAME|none] [--date DD/MM/YY|none]
 #
-# The deck is plain content markdown (`# Title`, `---` between slides, ...). Everything
+# The deck is plain content markdown (`# Title`, `---` between slides/pages, ...). Everything
 # else is added here, automatically, in a temp copy (the deck is never touched):
-#   - front matter defaults: marp, theme dotvibes, paginate (anything the deck
+#   - front matter defaults: marp, theme, paginate, page size (anything the deck
 #     sets itself wins)
-#   - footer "<author> <date> <deck title>" on every slide except the cover; the title is
-#     the first `# ` heading; author = `author:` in front matter, --author,
-#     $MARP_AUTHOR or `git config user.name` (none = omit)
+#   - footer "<author or team> <date> <deck title>" on every slide except the cover; the title is
+#     the first `# ` heading; the name = `team:` in front matter, --team, else
+#     `author:` in front matter, --author, $MARP_AUTHOR or `git config user.name`
+#     (none = omit); --team NAME|none puts a team in the footer instead of a
+#     person — for documents
 #   - cover: the first slide, when it has a `# ` heading, becomes the cover (no
-#     footer/logo/page number, a row of palette squares, a subtle author + date byline); date = today, --date DD/MM/YY overrides
+#     footer/logo/page number, a subtle author + date byline); date = today, --date DD/MM/YY overrides
+#   - --toc (documents): a contents page (or pages) after the title page, built
+#     from the `## ` headings, with the printed page numbers
 #   - nothing else: logos and backgrounds are optional ARGUMENTS only, never
-#     defaults. --logo FILE adds a logo (never on the cover), --logo-corner
+#     defaults. --logo FILE adds a logo (never on the cover for slides; on the
+#     cover only for documents — cover watermark; the doc theme hides it on
+#     content pages), --logo-corner
 #     tr|tl|bl|br[,wm] picks its corner (default tr; wm = faded watermark), and
 #     --background FILE puts an image behind every slide.
 
@@ -26,13 +38,17 @@ tmp="" work="" posters=""
 cleanup() { [ -z "$tmp" ] || rm -f "$tmp"; [ -z "$work" ] || rm -rf "$work"; [ -z "$posters" ] || rm -rf "$posters"; }
 trap cleanup EXIT
 
-usage() { echo "usage: marp-build <file.md> [output] [-t pdf|html] [-T light|dark] [--bundle] [--logo FILE] [--logo-corner tr|tl|bl|br[,wm]] [--background FILE] [--author NAME|none] [--date DD/MM/YY|none]" >&2; exit 2; }
+usage() { echo "usage: marp-build <file.md> [output] [-t pdf|html] [-T light|dark] [-f slides|doc] [-p letter|a4] [--toc] [--bundle] [--logo FILE] [--logo-corner tr|tl|bl|br[,wm]] [--background FILE] [--author NAME|none] [--team NAME|none] [--date DD/MM/YY|none]" >&2; exit 2; }
 
-in="" out="" type="" mode=light bundle=0 logo="" corner=tr background="" author="" date=""
+in="" out="" type="" mode=light bundle=0 logo="" corner=tr background="" author="" team="" date="" format=slides paper="" toc=0
 while [ $# -gt 0 ]; do
   case "$1" in
     -t|--type) [ $# -ge 2 ] || usage; type="$2"; shift 2 ;;
     -T|--theme) [ $# -ge 2 ] || usage; mode="$2"; shift 2 ;;
+    -f|--format) [ $# -ge 2 ] || usage; format="$2"; shift 2 ;;
+    -p|--paper) [ $# -ge 2 ] || usage; paper="$2"; shift 2 ;;
+    --toc) toc=1; shift ;;
+    --team) [ $# -ge 2 ] || usage; team="$2"; shift 2 ;;
     --bundle) bundle=1; shift ;;
     --logo) [ $# -ge 2 ] || usage; logo="$2"; shift 2 ;;
     --logo-corner) [ $# -ge 2 ] || usage; corner="$2"; shift 2 ;;
@@ -57,7 +73,16 @@ if [ "$bundle" = 1 ] && [ "$type" != html ]; then
   exit 2
 fi
 case "$type" in pdf|html) ;; *) echo "marp-build: type must be pdf or html" >&2; exit 2 ;; esac
-case "$mode" in light|dark) ;; *) echo "marp-build: theme must be light or dark" >&2; exit 2 ;; esac
+case "$format" in slides|doc) ;; *) echo "marp-build: format must be slides or doc" >&2; exit 2 ;; esac
+case "$paper" in ""|letter|a4) ;; *) echo "marp-build: paper must be letter or a4" >&2; exit 2 ;; esac
+if [ "$format" = doc ] && [ "$mode" = dark ]; then
+  echo "marp-build: warn: documents are light only — ignoring -T dark" >&2
+  mode=light
+fi
+if [ "$format" != doc ]; then
+  [ -z "$paper" ] || echo "marp-build: warn: --paper is a document option — ignoring" >&2
+  [ "$toc" = 0 ] || echo "marp-build: warn: --toc is a document option — ignoring" >&2
+fi
 src_dir=$(cd -P "$(dirname "$in")" && pwd)   # image paths in the deck are relative to this
 if [ "$bundle" = 1 ]; then
   command -v python3 > /dev/null || { echo "marp-build: --bundle needs python3" >&2; exit 1; }
@@ -72,19 +97,30 @@ else
 fi
 
 css="${MARP_CSS:-$HOME/.config/marp/marp.css}"
-dark_css="${css%.css}-dark.css"
 theme_args=()
 theme_name=dotvibes
-if [ -f "$css" ]; then
-  theme_args=(--theme-set "$css")
-  [ -f "$dark_css" ] && theme_args+=("$dark_css")
-  if [ "$mode" = dark ]; then
-    [ -f "$dark_css" ] || { echo "marp-build: $dark_css missing (run slides/install.sh)" >&2; exit 1; }
-    theme_name=dotvibes-dark
+if [ "$format" = doc ]; then
+  # documents: their own theme file, no dark variant, light only
+  css="${MARP_DOC_CSS:-$HOME/.config/marp/marp-doc.css}"
+  theme_name=dotvibes-doc
+  if [ -f "$css" ]; then
+    theme_args=(--theme-set "$css" --theme "$theme_name")
+  else
+    echo "marp-build: warn: $css missing — using marp's default theme (run docs/install.sh)" >&2
   fi
-  theme_args+=(--theme "$theme_name")
 else
-  echo "marp-build: warn: $css missing — using marp's default theme (run slides/install.sh)" >&2
+  dark_css="${css%.css}-dark.css"
+  if [ -f "$css" ]; then
+    theme_args=(--theme-set "$css")
+    [ -f "$dark_css" ] && theme_args+=("$dark_css")
+    if [ "$mode" = dark ]; then
+      [ -f "$dark_css" ] || { echo "marp-build: $dark_css missing (run slides/install.sh)" >&2; exit 1; }
+      theme_name=dotvibes-dark
+    fi
+    theme_args+=(--theme "$theme_name")
+  else
+    echo "marp-build: warn: $css missing — using marp's default theme (run slides/install.sh)" >&2
+  fi
 fi
 
 # Preprocessing, always, in a temp copy beside the input (so relative image paths
@@ -98,10 +134,10 @@ tmp="$(dirname "$in")/.marp-build.$$.$(basename "$in")"
 cp "$in" "$tmp"
 in="$tmp"
 posters=$(mktemp -d)
-python3 -I - "$in" "$src_dir" "$posters" "$want_video" "$theme_name" "$logo" "$author" "$corner" "$background" "$date" <<'PY'
+python3 -I - "$in" "$src_dir" "$posters" "$want_video" "$theme_name" "$logo" "$author" "$corner" "$background" "$date" "$format" "$paper" "$toc" "$team" <<'PY'
 import csv, html, os, re, shutil, subprocess, sys
 
-path, src_dir, posters, want_video, theme_name, logo_cli, author_cli, corner_cli, bg_cli, date_cli = sys.argv[1:11]
+path, src_dir, posters, want_video, theme_name, logo_cli, author_cli, corner_cli, bg_cli, date_cli, fmt, paper, want_toc, team_cli = sys.argv[1:15]
 text = open(path, encoding="utf-8").read()
 
 def resolve(p):
@@ -148,6 +184,14 @@ if not author:
 if author.lower() == "none": author = ""
 title = keys.get("title") or first_title(body)
 
+# team: front matter `team:` or --team NAME. When given, the TEAM name goes in
+# the footer instead of the author's (a document is the team's, not one
+# person's); `none` suppresses the name entirely. The cover byline always
+# shows the author.
+team = keys.get("team") or team_cli or ""
+team_given = bool(keys.get("team") is not None or team_cli)
+footer_name = ("" if team.lower() == "none" else team) if team_given else author
+
 # date: today (DD/MM/YY) unless --date DD/MM/YY; `none` hides it
 import datetime
 date = date_cli or datetime.date.today().strftime("%d/%m/%y")
@@ -160,8 +204,22 @@ else:
 add = []
 if "marp" not in keys: add.append("marp: true")
 if "paginate" not in keys: add.append("paginate: true")
-if "footer" not in keys and (author or title or date):
-    add.append("footer: " + yq(" \u00b7 ".join(html.escape(x) for x in (author, date, title) if x)))
+if fmt == "doc":
+    # page size: US Letter unless --paper a4. An explicit --paper wins over the
+    # deck's own `size:`; otherwise a deck `size:` beats the letter default.
+    if paper:
+        if keys.get("size", "").lower() != paper:
+            print(f"marp-build: note: --paper {paper} overrides the deck's size: {keys.get('size')}", file=sys.stderr)
+        new_fm_clean = []
+        for l in fm_lines:
+            if not re.match(r'size:', l):
+                new_fm_clean.append(l)
+        fm_lines = new_fm_clean
+        add.append("size: " + ("A4" if paper == "a4" else "Letter"))
+    elif "size" not in keys:
+        add.append("size: Letter")
+if "footer" not in keys and (footer_name or title or date):
+    add.append("footer: " + yq(" \u00b7 ".join(html.escape(x) for x in (footer_name, date, title) if x)))
 
 # logo and background: ONLY from the --logo / --background arguments (paths as given,
 # relative to the current directory); never a default, env var or deck setting
@@ -189,14 +247,18 @@ for l in fm_lines:
 if not seen_theme: add.append("theme: " + theme_name)
 new_fm = [l for l in new_fm if l != ""] + add
 
-# cover: first slide with a `# ` heading (and no explicit class) is the cover
+# cover: first slide with a `# ` heading (and no explicit class) is the cover.
+# Slides drop the logo on the cover; documents keep it (letterhead).
+cover_applied = False
 end = first_slide_end(body)
 first, rest = body[:end], body[end:]
 if re.search(r'^# ', first, re.M) and "_class" not in first:
+    cover_applied = True
     # blank line after the HTML block, or the following `---` is swallowed by it
     bl = " \u00b7 ".join(html.escape(x) for x in (author, date) if x)
     byline = f'\n<p class="byline">{bl}</p>\n\n' if bl else "\n"
-    first = ("\n<!-- _class: lead cover -->\n<!-- _header: '' -->\n<!-- _footer: '' -->\n"
+    hide_header = "" if fmt == "doc" else "\n<!-- _header: '' -->"
+    first = ("\n<!-- _class: lead cover -->" + hide_header + "\n<!-- _footer: '' -->\n"
              + first.rstrip("\n") + "\n" + byline)
 body = first + rest
 
@@ -292,6 +354,52 @@ if want_video == "1":
 
     text = re.sub(r'<video\b[^>]*>.*?</video>|<video\b[^>]*/>', repl, text, flags=re.S)
 
+# ---- table of contents (documents, --toc or front matter `toc: true`) ----------
+# A contents page (or pages, 18 entries each) right after the title page, one row
+# per `## ` heading, with the printed page number. The page number of a slide is
+# its 1-based position in the document, so the rows are numbered with the TOC
+# pages themselves counted in (every entry's number is shifted by how many
+# contents pages get inserted — chunking is fixed, so this is deterministic).
+if fmt == "doc" and (want_toc == "1" or keys.get("toc", "").lower() in ("true", "yes", "1")):
+    PER_PAGE = 18
+    fm2, body = split_front(text)
+    slides, fence, cur = [], False, []
+    for line in body.split("\n"):
+        if line.lstrip().startswith("```"): fence = not fence
+        if not fence and re.match(r'---[ \t]*$', line):
+            slides.append("\n".join(cur)); cur = []
+        else:
+            cur.append(line)
+    slides.append("\n".join(cur))
+
+    has_cover = cover_applied
+    entries = []
+    for idx, s in enumerate(slides):
+        if idx == 0 and has_cover: continue
+        fence = False
+        for line in s.split("\n"):
+            if line.lstrip().startswith("```"): fence = not fence
+            if not fence and line.startswith("## "):
+                t = re.sub(r'[*_`]', '', line[3:]).strip()
+                if t: entries.append((t, idx + 1))
+    if entries:
+        n_pages = (len(entries) + PER_PAGE - 1) // PER_PAGE
+        toc_slides = []
+        for p in range(n_pages):
+            rows = "\n".join(
+                f'<div class="toc-row"><span class="toc-t">{html.escape(t)}</span>'
+                f'<span class="toc-dots"></span><span class="toc-n">{pg + n_pages}</span></div>'
+                for t, pg in entries[p * PER_PAGE:(p + 1) * PER_PAGE])
+            heading = "Contents" if p == 0 else "Contents, continued"
+            toc_slides.append(f"<!-- _class: toc -->\n\n## {heading}\n\n"
+                              f'<div class="toc">\n{rows}\n</div>')
+        at = 1 if has_cover else 0
+        slides = slides[:at] + toc_slides + slides[at:]
+        body = "\n\n---\n\n".join(s.strip("\n") for s in slides) + "\n"
+        text = "---\n" + fm2 + "\n---\n" + body
+    else:
+        print("marp-build: warn: --toc requested but the document has no ## headings — no contents page", file=sys.stderr)
+
 open(path, "w", encoding="utf-8").write(text)
 PY
 # marp-cli: --html means "allow raw HTML in markdown", not the output format;
@@ -318,10 +426,10 @@ if [ "$bundle" = 1 ]; then
     [ -f "$HOME/.config/bash/.dotvibes_repo" ] && . "$HOME/.config/bash/.dotvibes_repo"
     fonts_root="${DOTVIBES_REPO:-}/fonts"
   }
-  python3 -I - "$out" "$src_dir" "$bundle_dir" "$fonts_root" <<'PY'
+  python3 -I - "$out" "$src_dir" "$bundle_dir" "$fonts_root" "$format" <<'PY'
 import html as H, os, re, shutil, sys, hashlib, urllib.parse, urllib.request
 
-page, src_dir, dest, fonts_root = sys.argv[1:5]
+page, src_dir, dest, fonts_root, fmt = sys.argv[1:6]
 doc = open(page, encoding="utf-8").read()
 
 # never touch a folder that isn't ours: only replace index.html + assets/
@@ -388,6 +496,10 @@ for f, w, st in [("Regular",400,"normal"),("RegularItalic",400,"italic"),("Mediu
     face("ABC Areal", f"ABCAreal-{f}.ttf", w, st, "Areal")
 for f, w, st in [("Regular",400,"normal"),("Bold",700,"normal")]:
     face("Monaspace Argon NF", f"MonaspaceArgonNF-{f}.otf", w, st, "Monaspace Argon")
+if fmt == "doc":
+    for f, w, st in [("Regular",400,"normal"),("Italic",400,"italic"),
+                     ("Bold",700,"normal"),("BoldItalic",700,"italic")]:
+        face("EB Garamond", f"EBGaramond-{f}.ttf", w, st, "garamond")
 if faces:
     doc = doc.replace("</head>", "<style>" + "".join(faces) + "</style></head>", 1)
 

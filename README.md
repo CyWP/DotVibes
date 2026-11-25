@@ -27,10 +27,12 @@ self-contained `install.sh` (you can also run any of them on its own):
 | `tmux/` | `tmux/tmux.conf` | `~/.tmux.conf` |
 | `opencode/` | `opencode/cli.json` (CLI/TUI settings: theme, tabs, ...) | `~/.config/opencode/cli.json` |
 | `appearance/` | `appearance/bg.png` | wallpaper: copied to `~/.local/share/backgrounds/`, GNOME keys set via gsettings |
-| `fonts/` | `fonts/Monaspace Argon/*.otf` (core 4 styles) | `~/.local/share/fonts/Monaspace Argon/*.otf` |
+| `fonts/` | `fonts/{Monaspace Argon,Areal,garamond}/*` | `~/.local/share/fonts/<Family>/*` |
 | `bash/` | shell files: `paths`, `prompt`, `aliases`, `extra` | `~/.config/bash/.{paths,prompt,aliases,extra}` (micromamba's init block + the tool-installer nvim/opencode PATH lines live directly in `~/.bashrc`, tool-managed) |
 | `python/` | `ruff.toml` + python project templates | copied into project roots by `bin/pyproj` (committed with each project, not linked) |
 | `bin/` | 20 hand-written scripts | `~/.local/bin/*` |
+| `slides/` | Marp slide theme (`marp.css`, `marp-dark.css`, theme `dotvibes`) + `/marp-slides` command | CSS: `~/.config/marp/`; command: `~/.claude/commands` **and** `~/.config/opencode/commands`; builds via `bin/marp-build` |
+| `docs/` | Marp document theme (`marp-doc.css`, theme `dotvibes-doc`: paged US Letter/A4, Areal + EB Garamond) + `/marp-docs` command | CSS: `~/.config/marp/`; command: `~/.claude/commands` **and** `~/.config/opencode/commands`; builds via `bin/marp-doc-build` |
 
 The agents component is intentionally linked into the Claude config dirs —
 opencode natively reads `~/.claude/skills` as a global compatibility source,

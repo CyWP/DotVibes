@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# marp-doc-build — render a Marp markdown file to a paged DOCUMENT (report,
+# essay, memo) as PDF (default) or HTML. A thin wrapper around marp-build's
+# document format, so the docs command has its own command name:
+#
+#   marp-doc-build <file.md> [output] [-t pdf|html] [-p letter|a4] [--toc]
+#                  [--bundle] [--logo FILE] [--logo-corner tr|tl|bl|br[,wm]]
+#                  [--background FILE] [--author NAME|none] [--date DD/MM/YY|none]
+#
+# is exactly `marp-build <file.md> ... -f doc`. US Letter portrait by default
+# (--paper a4 for A4), light only (documents have no dark variant), theme
+# "dotvibes-doc" — see docs/marp-doc.css, installed by docs/install.sh.
+# Everything else (title page, footer, author/date, contents page, CSV
+# expansion, bundling) is marp-build's; see its header comment.
+
+set -euo pipefail
+
+# -T/--theme is slides-only: documents are light only — say so instead of
+# letting marp-build quietly ignore it
+for a in "$@"; do
+  case "$a" in
+    -T|--theme) echo "marp-doc-build: documents are light only — no -T/--theme option" >&2; exit 2 ;;
+  esac
+done
+
+here=$(cd -P "$(dirname "$0")" && pwd)
+exec "$here/marp-build" "$@" -f doc
